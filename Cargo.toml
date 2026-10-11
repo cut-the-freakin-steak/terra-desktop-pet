@@ -1,0 +1,51 @@
+[package]
+name = "bevy_temp"
+version = "0.1.0"
+edition = "2024"
+description = "a template for bevy projects"
+readme = "../README.md"
+repository = "https://github.com/cut-the-freakin-steak/gdrs-temp"
+license = "MIT"
+
+[dependencies]
+avian2d = "*"
+bevy = { version = "*", features = ["dynamic_linking"] }
+bevy_dylib = "*"
+bevy_enhanced_input = "*"
+log = { version = "*", features = [
+	"max_level_debug",
+	"release_max_level_warn",
+] }
+
+[lints.clippy]
+needless_return = "allow"
+
+# enable a small amount of optimization in the dev profile
+[profile.dev]
+opt-level = 1
+
+# enable a large amount of optimization in the dev profile for dependencies
+[profile.dev.package."*"]
+opt-level = 3
+
+# enable more optimization in the release profile at the cost of compile time
+[profile.release]
+# do a second optimization pass over the entire program, including dependencies
+# slows compile times, marginal improvements
+lto = "thin"
+
+# compile the entire crate as one unit
+# slows compile times, marginal improvements
+codegen-units = 1
+
+# optimize for size in the wasm-release profile to reduce load times and bandwidth usage on web
+[profile.wasm-release]
+# default to release profile values
+inherits = "release"
+
+# optimize with size in mind (also try "z", sometimes it is better)
+# slightly slows compile times, great improvements to file size and runtime performance
+opt-level = "s"
+
+# strip all debugging information from the binary to slightly reduce file size
+strip = "debuginfo"
