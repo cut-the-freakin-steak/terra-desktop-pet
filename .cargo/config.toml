@@ -1,15 +1,15 @@
-# for using mold as the linker on linux:
-[target.x86_64-unknown-linux-gnu]
-linker = "clang"
-rustflags = ["-C", "link-arg=-fuse-ld=mold", "-Zshare-generics=y"]
-
-# for using lld as the linker on linux:
-# [target.x86_64-unknown-linux-gnu]
-# linker = "clang"
-# rustflags = ["-C", "link-arg=-fuse-ld=lld"]
-
 # mold isnt available on windows, so just use lld
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"
 
 # macos linker is cracked as hell for some reason and is faster than lld and just as fast as mold
+
+# for using mold as the linker on linux:
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-Z", "share-generics=y", "-C", "link-arg=-fuse-ld=mold"]
+
+# for using lld as the linker on linux:
+# [target.x86_64-unknown-linux-gnu]
+# linker = "clang"
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]

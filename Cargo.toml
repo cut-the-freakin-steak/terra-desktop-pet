@@ -10,13 +10,10 @@ license = "MIT"
 [dependencies]
 bevy = { version = "0.20.0", features = ["dynamic_linking", "hotpatching"] }
 bevy_dylib = "0.20.0"
-log = {
-  version = "0.4.34",
-  features = [
-    "max_level_debug",
-    "release_max_level_warn",
-  ]
-}
+
+[dependencies.log]
+version = "0.4.34"
+features = ["max_level_debug", "release_max_level_warn"]
 
 [lints.clippy]
 needless_return = "allow"
