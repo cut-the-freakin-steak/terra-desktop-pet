@@ -1,8 +1,8 @@
 [package]
-name = "bevy_temp"
+name = "desktop-pet"
 version = "0.1.0"
 edition = "2024"
-description = "a template for bevy projects"
+description = "silly little desktop pet"
 readme = "README.md"
 repository = "https://codeberg.org/cut-the-freakin-steak/terra-desktop-pet"
 license = "MIT"

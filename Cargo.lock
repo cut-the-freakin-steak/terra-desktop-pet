@@ -1750,15 +1750,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_temp"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_dylib",
- "log",
-]
-
-[[package]]
 name = "bevy_text"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2530,6 +2521,15 @@ dependencies = [
  "rustc_version",
  "syn 2.0.119",
  "unicode-xid",
+]
+
+[[package]]
+name = "desktop-pet"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_dylib",
+ "log",
 ]
 
 [[package]]
