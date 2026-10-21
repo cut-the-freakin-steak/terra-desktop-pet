@@ -9,7 +9,6 @@ license = "MIT"
 
 [dependencies]
 bevy = { version = "0.20.0", features = ["dynamic_linking", "hotpatching"] }
-bevy_dylib = "0.20.0"
 
 [dependencies.log]
 version = "0.4.34"
