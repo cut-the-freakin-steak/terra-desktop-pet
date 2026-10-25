@@ -8,10 +8,10 @@ repository = "https://codeberg.org/cut-the-freakin-steak/terra-desktop-pet"
 license = "MIT"
 
 [package.metadata.packager]
-before-packaging-command = "cargo build --release --no-default-features"
 product-name = "jAkEtop"
-version = "0.1.0"
 identifier = "com.steaknmillie.jAkEtop"
+version = "0.1.0"
+formats = ["app"]
 icons = ["assets/jAkE_app_icon.png"]
 
 [dependencies]
@@ -19,7 +19,6 @@ bevy = "0.20.0"
 log = { version = "0.4.34", features = ["max_level_debug", "release_max_level_warn"] }
 
 [features]
-default = ["bevy_debug"]
 bevy_debug = ["bevy/dynamic_linking", "bevy/hotpatching"]
 
 [lints.clippy]
