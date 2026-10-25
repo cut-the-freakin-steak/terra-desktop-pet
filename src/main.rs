@@ -8,7 +8,7 @@ use trans_window::TransparentWindow;
 
 fn main() -> AppExit {
 	let transparent_window_plugin =
-		TransparentWindow::new("desktop-pet".to_string(), Some("desktop-pet".to_string()));
+		TransparentWindow::new("jaketop".to_string(), Some("jaketop".to_string()));
 
 	return App::new()
 		.insert_resource(ClearColor(Color::NONE))
