@@ -2,6 +2,9 @@ use bevy::prelude::*;
 use bevy::window::{Monitor, OnMonitor, PrimaryWindow};
 
 /// makes the primary window transparent, useful for a desktop pet type app
+///
+/// IMPORTANT!!! make sure to set the `ExitCondition` for your `WindowPlugin` as
+/// `ExitCondition::DontExit` **before** adding this plugin
 pub struct TransparentWindow {
 	title: String,
 	name: Option<String>,
@@ -112,6 +115,7 @@ fn reopen_window(
 		composite_alpha_mode: CompositeAlphaMode::PreMultiplied,
 
 		window_level: WindowLevel::AlwaysOnTop,
+		position: WindowPosition::Centered(MonitorSelection::Current),
 		resolution: WindowResolution::from(state.monitor_res)
 			.with_scale_factor_override(state.monitor_scale as f32),
 
