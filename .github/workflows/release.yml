@@ -27,7 +27,7 @@ jobs:
           - name: macOS Apple Silicon (ARM64)
             os: macos-14
             target: aarch64-apple-darwin
-            command: cargo packager --release --target aarch64-apple-darwin --format app
+            command: cargo packager --release --target aarch64-apple-darwin --formats app
 
     steps:
       # pull repo code into the vm
