@@ -1,17 +1,17 @@
 [package]
-name = "desktop-pet"
+name = "jAkEtop"
 version = "0.1.0"
 edition = "2024"
-description = "silly little desktop pet"
+description = "silly little desktop jake"
 readme = "README.md"
 repository = "https://codeberg.org/cut-the-freakin-steak/terra-desktop-pet"
 license = "MIT"
 
 [package.metadata.packager]
 before-packaging-command = "cargo build --release --no-default-features"
-product-name = "jaketop"
+product-name = "jAkEtop"
 version = "0.1.0"
-identifier = "com.steaknmillie.jaketop"
+identifier = "com.steaknmillie.jAkEtop"
 icons = ["assets/jAkE_app_icon.png"]
 
 [dependencies]

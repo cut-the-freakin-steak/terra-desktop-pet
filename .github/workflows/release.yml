@@ -27,17 +27,26 @@ jobs:
           - name: macOS Apple Silicon (ARM64)
             os: macos-14
             target: aarch64-apple-darwin
-            command: cargo packager --release --no-default-features --target aarch64-apple-darwin --format app
-
-          - name: macOS Intel (x86_64)
-            os: macos-13
-            target: x86_64-apple-darwin
-            command: cargo packager --release --no-default-features --target x86_64-apple-darwin --format app
+            command: cargo packager --release --target aarch64-apple-darwin --format app
 
     steps:
       # pull repo code into the vm
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            g++ \
+            pkg-config \
+            libx11-dev \
+            libasound2-dev \
+            libudev-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-0
 
       # install the correct rust toolchain and target architecture
       - name: Set up Rust
