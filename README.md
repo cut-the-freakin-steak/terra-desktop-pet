@@ -6,7 +6,7 @@ this should work on most major things (windows, mac, linux (kde, GNOME, any non-
 
 ## how to get this working on hyprland
 
-put the following in one of your config files:
+put the following window rule in one of your config files:
 
 ```lua
 hl.window_rule({
