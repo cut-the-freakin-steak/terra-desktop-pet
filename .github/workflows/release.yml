@@ -1,5 +1,8 @@
 name: Build Releases
 
+env:
+  APP_NAME: "jAkEtop"
+
 on:
   push:
     tags:
@@ -78,16 +81,16 @@ jobs:
 
           if [ "${{ matrix.os }}" = "macos-14" ]; then
             # cargo-packager should have produced an app bundle here.
-            cp -R target/packager/*.app artifact/
+            cp -R "target/${{ matrix.target }}/release/${{ env.APP_NAME }}.app" artifact/
           elif [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp "target/${{ matrix.target }}/release/jAkEtop.exe" artifact/
+            cp "target/${{ matrix.target }}/release/${{ env.APP_NAME }}.exe" artifact/
           else
-            cp "target/${{ matrix.target }}/release/jAkEtop" artifact/
+            cp "target/${{ matrix.target }}/release/${{ env.APP_NAME }}" artifact/
           fi
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: jAkEtop ~ ${{ matrix.name }}
+          name: ${{ env.APP_NAME }} ~ ${{ matrix.name }}
           path: artifact/
           if-no-files-found: error

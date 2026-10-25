@@ -25,5 +25,3 @@ hl.window_rule({
 	move = "0 0",
 })
 ```
-
-does it work if i push from linux?
