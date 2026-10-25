@@ -1,6 +1,6 @@
 # jakE desktop pet!
 
-## jaketop if you will
+(jaketop if you will)
 
 this should work on most major things (windows, mac, linux (kde, GNOME, any non-tiling wm)), but since it doesn't work on hyprland and i use it, i can give you direct instructions :3
 
