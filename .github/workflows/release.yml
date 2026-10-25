@@ -14,17 +14,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Linux (x86_64)
+          - name: linux (x86_64)
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             command: cargo build --release --no-default-features --target x86_64-unknown-linux-gnu
 
-          - name: Windows (x86_64)
+          - name: windows (x86_64)
             os: windows-latest
             target: x86_64-pc-windows-msvc
             command: cargo build --release --no-default-features --target x86_64-pc-windows-msvc
 
-          - name: macOS Apple Silicon (ARM64)
+          - name: macos (arm64)
             os: macos-14
             target: aarch64-apple-darwin
             command: cargo packager --release --target aarch64-apple-darwin --formats app
@@ -68,10 +68,24 @@ jobs:
         run: ${{ matrix.command }}
 
       # save the compiled binaries/installers as downloadable build artifacts
+      - name: Prepare Artifact
+        shell: bash
+        run: |
+          rm -rf artifact
+          mkdir -p artifact
+
+          if [ "${{ matrix.os }}" = "macos-14" ]; then
+            # cargo-packager should have produced an app bundle here.
+            cp -R target/packager/*.app artifact/
+          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp "target/${{ matrix.target }}/release/jAkEtop.exe" artifact/
+          else
+            cp "target/${{ matrix.target }}/release/jAkEtop" artifact/
+          fi
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: app-${{ matrix.target }}
-          path: |
-            target/${{ matrix.target }}/release/
-            target/packager/
+          name: jAkEtop ~ ${{ matrix.name }}
+          path: artifact/
+          if-no-files-found: error
