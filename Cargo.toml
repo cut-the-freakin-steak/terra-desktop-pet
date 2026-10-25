@@ -7,6 +7,7 @@ readme = "README.md"
 repository = "https://codeberg.org/cut-the-freakin-steak/terra-desktop-pet"
 license = "MIT"
 
+# run cargo build --release --target {your_os} before cargo packager
 [package.metadata.packager]
 product-name = "jAkEtop"
 identifier = "com.steaknmillie.jAkEtop"
@@ -17,6 +18,9 @@ icons = ["assets/jAkE_app_icon.png"]
 [dependencies]
 bevy = "0.20.0"
 log = { version = "0.4.34", features = ["max_level_debug", "release_max_level_warn"] }
+
+[build-dependencies]
+winresource = "0.1.34"
 
 [features]
 bevy_debug = ["bevy/dynamic_linking", "bevy/hotpatching"]

@@ -27,7 +27,7 @@ jobs:
           - name: macos (arm64)
             os: macos-14
             target: aarch64-apple-darwin
-            command: cargo packager --release --target aarch64-apple-darwin
+            command: cargo build --release --target aarch64-apple-darwin && cargo packager --release --target aarch64-apple-darwin
 
     steps:
       # pull repo code into the vm
