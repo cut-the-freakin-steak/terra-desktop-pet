@@ -91,7 +91,7 @@ jobs:
           save-if: true
 
       - name: Install cargo-packager
-        if: runner.os == "macOS"
+        if: runner.os == 'macOS'
         shell: bash
         run: cargo install cargo-packager --locked
 
