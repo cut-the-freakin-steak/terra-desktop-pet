@@ -2,6 +2,7 @@ mod trans_window;
 
 use bevy::prelude::*;
 use bevy::window::ExitCondition;
+use bevy_embedded_assets::EmbeddedAssetPlugin;
 
 use trans_window::TransparentWindow;
 
@@ -12,6 +13,7 @@ fn main() -> AppExit {
 	return App::new()
 		.insert_resource(ClearColor(Color::NONE))
 		.add_plugins((
+			EmbeddedAssetPlugin::default(),
 			DefaultPlugins
 				.set(WindowPlugin {
 					exit_condition: ExitCondition::DontExit,
@@ -51,9 +53,9 @@ enum DirectionY {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn(Camera2d);
 
-	let jake_eyes = Sprite::from_image(asset_server.load("sprites/jAkE_eyes.png"));
-	let jake_nose = Sprite::from_image(asset_server.load("sprites/jAkE_nose.png"));
-	let jake_bush = Sprite::from_image(asset_server.load("sprites/jAkE_bush.png"));
+	let jake_eyes = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_eyes.png"));
+	let jake_nose = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_nose.png"));
+	let jake_bush = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_bush.png"));
 
 	commands
 		.spawn((

@@ -17,6 +17,7 @@ icons = ["assets/jAkE_app_icon.png"]
 
 [dependencies]
 bevy = "0.20.0"
+bevy_embedded_assets = { git = "https://github.com/vleue/bevy_embedded_assets", rev = "refs/pull/39/head" }
 log = { version = "0.4.34", features = ["max_level_debug", "release_max_level_warn"] }
 
 [build-dependencies]

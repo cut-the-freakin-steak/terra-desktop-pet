@@ -871,6 +871,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_embedded_assets"
+version = "0.16.0"
+source = "git+https://github.com/vleue/bevy_embedded_assets?rev=refs%2Fpull%2F39%2Fhead#77305345ed2fda96a582e4cf853481f0d4018253"
+dependencies = [
+ "bevy_app",
+ "bevy_asset",
+ "bevy_ecs",
+ "cargo-emit",
+ "futures-io",
+ "futures-lite",
+ "log",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "bevy_encase_derive"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2163,6 +2178,12 @@ dependencies = [
  "wayland-backend",
  "wayland-client",
 ]
+
+[[package]]
+name = "cargo-emit"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1582e1c9e755dd6ad6b224dcffb135d199399a4568d454bd89fe515ca8425695"
 
 [[package]]
 name = "cc"
@@ -3489,6 +3510,7 @@ name = "jAkEtop"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_embedded_assets",
  "log",
  "winresource",
 ]
