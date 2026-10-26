@@ -7,7 +7,7 @@ this should work on most major things (windows, mac, linux (kde, GNOME, any non-
 ## windows
 
 windows defender will try to nag you about this. i promise you it's not a virus.
-another thing, if you have an NVIDIA GPU, it may be broken as hell. [there's an open issue for this in bevy for this](https://github.com/bevyengine/bevy/issues/7544), so it's out of my hands.
+another thing, if you have an [NVIDIA GPU](https://github.com/bevyengine/bevy/issues/7544#issuecomment-2840720210), it may be broken as hell. [there's an open issue for this in bevy](https://github.com/bevyengine/bevy/issues/7544), so it's out of my hands.
 
 here's how to fix it:
 
