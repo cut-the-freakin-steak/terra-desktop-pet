@@ -117,7 +117,7 @@ fn reopen_window(
 		decorations: false,
 		transparent: true,
 
-		#[cfg(any(target_os = "macos", target_os = "windows"))]
+		#[cfg(target_os = "macos")]
 		composite_alpha_mode: CompositeAlphaMode::PostMultiplied,
 		#[cfg(target_os = "linux")]
 		composite_alpha_mode: CompositeAlphaMode::PreMultiplied,
