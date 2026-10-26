@@ -61,6 +61,7 @@ fn move_purple_square_left_and_right(
 	else {
 		return;
 	};
+
 	let Ok(monitor) = monitors.get(on_monitor.0)
 	else {
 		return;
