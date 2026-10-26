@@ -1,6 +1,5 @@
 mod trans_window;
 
-use bevy::color::palettes::basic::PURPLE;
 use bevy::prelude::*;
 use bevy::window::ExitCondition;
 
@@ -13,10 +12,12 @@ fn main() -> AppExit {
 	return App::new()
 		.insert_resource(ClearColor(Color::NONE))
 		.add_plugins((
-			DefaultPlugins.set(WindowPlugin {
-				exit_condition: ExitCondition::DontExit,
-				..default()
-			}),
+			DefaultPlugins
+				.set(WindowPlugin {
+					exit_condition: ExitCondition::DontExit,
+					..default()
+				})
+				.set(ImagePlugin::default_nearest()),
 			transparent_window_plugin,
 		))
 		.add_systems(Startup, setup)
@@ -24,30 +25,56 @@ fn main() -> AppExit {
 		.run();
 }
 
+#[allow(dead_code)]
 #[derive(Component)]
-struct PurpleRect;
+struct Jake {
+	pub eyes: Sprite,
+	pub nose: Sprite,
+	pub bush: Sprite,
+}
 
 #[derive(Component)]
-struct Direction(f32);
+struct Direction(DirectionX, DirectionY);
 
-fn setup(
-	mut commands: Commands,
-	mut meshes: ResMut<Assets<Mesh>>,
-	mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+#[derive(Clone, Copy)]
+enum DirectionX {
+	Left = -1,
+	Right = 1,
+}
+
+#[derive(Clone, Copy)]
+enum DirectionY {
+	Down = -1,
+	Up = 1,
+}
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn(Camera2d);
-	commands.spawn((
-		PurpleRect,
-		Mesh2d(meshes.add(Rectangle::default())),
-		MeshMaterial2d(materials.add(Color::from(PURPLE))),
-		Transform::default().with_scale(Vec3::new(128.0, 128.0, 0.0)),
-		Direction(1.0),
-		GlobalTransform::default(),
-	));
+
+	let jake_eyes = Sprite::from_image(asset_server.load("sprites/jAkE_eyes.png"));
+	let jake_nose = Sprite::from_image(asset_server.load("sprites/jAkE_nose.png"));
+	let jake_bush = Sprite::from_image(asset_server.load("sprites/jAkE_bush.png"));
+
+	commands
+		.spawn((
+			Jake {
+				eyes: jake_eyes.clone(),
+				nose: jake_nose.clone(),
+				bush: jake_bush.clone(),
+			},
+			Transform::default().with_scale(Vec3::new(3.0, 3.0, 0.0)),
+			Direction(DirectionX::Right, DirectionY::Up),
+			GlobalTransform::default(),
+		))
+		.with_children(|parent| {
+			parent.spawn((jake_eyes, Transform::from_xyz(-2.0, 13.0, 0.0)));
+			parent.spawn((jake_nose, Transform::from_xyz(15.0, 4.0, 0.0)));
+			parent.spawn((jake_bush, Transform::from_xyz(0.0, -20.0, 0.0)));
+		});
 }
 
 fn move_purple_square_left_and_right(
-	mut purple_rect: Single<(&mut Transform, &GlobalTransform, &mut Direction), With<PurpleRect>>,
+	mut jake: Single<(&mut Transform, &GlobalTransform, &mut Direction), With<Jake>>,
 	on_monitor_windows: Query<
 		(&Window, &bevy::window::OnMonitor),
 		With<bevy::window::PrimaryWindow>,
@@ -55,7 +82,7 @@ fn move_purple_square_left_and_right(
 	monitors: Query<&bevy::window::Monitor>,
 	time: Res<Time>,
 ) {
-	let (transform, g_transform, direction) = &mut *purple_rect;
+	let (transform, g_transform, direction) = &mut *jake;
 
 	let Ok((_, on_monitor)) = on_monitor_windows.single()
 	else {
@@ -68,14 +95,38 @@ fn move_purple_square_left_and_right(
 	};
 
 	let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
-	if half_monitor_width <= (g_transform.translation().x + transform.scale.x / 2.0) as f64 {
-		direction.0 = -1.0;
-	}
-	else if -half_monitor_width >= (g_transform.translation().x - transform.scale.x / 2.0) as f64
+	let half_monitor_height = (monitor.physical_height as f64 / monitor.scale_factor) / 2.0;
+	// right side of monitor
+	if half_monitor_width
+		<= (g_transform.translation().x + (transform.scale.x + 180.0) / 2.0) as f64
 	{
-		direction.0 = 1.0;
+		direction.0 = DirectionX::Left;
+	}
+	// left side of monitor
+	else if -half_monitor_width
+		>= (g_transform.translation().x - (transform.scale.x + 180.0) / 2.0) as f64
+	{
+		direction.0 = DirectionX::Right;
+	}
+	// top of monitor
+	if half_monitor_height
+		<= (g_transform.translation().y + (transform.scale.y + 180.0) / 2.0) as f64
+	{
+		direction.1 = DirectionY::Down;
+	}
+	// bottom of monitor
+	else if -half_monitor_height
+		>= (g_transform.translation().y - (transform.scale.y + 180.0) / 2.0) as f64
+	{
+		direction.1 = DirectionY::Up;
 	}
 
-	const SPEED: f32 = 1000.0;
-	transform.translation.x += direction.0 * SPEED * time.delta_secs();
+	match direction.0 {
+		DirectionX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
+		DirectionX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
+	}
+
+	const SPEED: f32 = 250.0;
+	transform.translation.x += direction.0 as i8 as f32 * SPEED * time.delta_secs();
+	transform.translation.y += direction.1 as i8 as f32 * SPEED * time.delta_secs();
 }
