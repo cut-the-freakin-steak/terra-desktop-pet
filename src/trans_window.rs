@@ -98,6 +98,7 @@ fn reopen_window(
 	config: Res<TWindowConfig>,
 ) {
 	use bevy::window::{CompositeAlphaMode, CursorOptions, WindowLevel, WindowResolution};
+
 	if !state.reopen_requested || !windows.is_empty() {
 		return;
 	}
