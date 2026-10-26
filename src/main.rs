@@ -67,10 +67,12 @@ fn move_purple_square_left_and_right(
 	};
 
 	let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
-	if (half_monitor_width <= (g_transform.translation().x + transform.scale.x / 2.0) as f64)
-		|| (-half_monitor_width >= (g_transform.translation().x - transform.scale.x / 2.0) as f64)
+	if half_monitor_width <= (g_transform.translation().x + transform.scale.x / 2.0) as f64 {
+		direction.0 = -1.0;
+	}
+	else if -half_monitor_width >= (g_transform.translation().x - transform.scale.x / 2.0) as f64
 	{
-		direction.0 *= -1.0;
+		direction.0 = 1.0;
 	}
 
 	const SPEED: f32 = 1000.0;

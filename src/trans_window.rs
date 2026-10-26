@@ -38,6 +38,7 @@ impl Plugin for TransparentWindow {
 struct ReopenWindow {
 	pub close_requested: bool,
 	pub reopen_requested: bool,
+	pub monitor: Option<Entity>,
 	pub monitor_res: (u32, u32),
 	pub monitor_scale: f64,
 }
@@ -85,6 +86,7 @@ fn close_window(
 
 	state.close_requested = false;
 	state.reopen_requested = true;
+	state.monitor = Some(on_monitor.0);
 	state.monitor_res = (width, height);
 	state.monitor_scale = monitor.scale_factor;
 }
@@ -100,6 +102,11 @@ fn reopen_window(
 		return;
 	}
 
+	let Some(monitor_entity) = &state.monitor
+	else {
+		return;
+	};
+
 	let window = Window {
 		title: config.title.clone(),
 		name: config.name.clone(),
@@ -109,13 +116,13 @@ fn reopen_window(
 		decorations: false,
 		transparent: true,
 
-		#[cfg(target_os = "macos")]
+		#[cfg(any(target_os = "macos", target_os = "windows"))]
 		composite_alpha_mode: CompositeAlphaMode::PostMultiplied,
 		#[cfg(target_os = "linux")]
 		composite_alpha_mode: CompositeAlphaMode::PreMultiplied,
 
 		window_level: WindowLevel::AlwaysOnTop,
-		position: WindowPosition::Centered(MonitorSelection::Current),
+		position: WindowPosition::Centered(MonitorSelection::Entity(*monitor_entity)),
 		resolution: WindowResolution::from(state.monitor_res)
 			.with_scale_factor_override(state.monitor_scale as f32),
 
