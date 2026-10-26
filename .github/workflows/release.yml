@@ -5,6 +5,8 @@ env:
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*" # triggers automatically a version tag is pushed (git tag v1.0.0 && git push --tags)
 
@@ -55,13 +57,22 @@ jobs:
 
       # install the correct rust toolchain and target architecture
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@nightly-2026-10-20
         with:
           targets: ${{ matrix.target }}
 
       # caching
       - name: Cache Cargo Dependencies
+        id: cargo-cache
         uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+          cache-bin: true
+          cache-on-failure: true
+
+      - name: Report Cache Result
+        run: |
+          echo "Cargo cache hit: ${{ steps.cargo-cache.outputs.cache-hit }}"
 
       # install cargo-packager on the mac runners (since they handle packaging)
       - name: Install cargo-packager
