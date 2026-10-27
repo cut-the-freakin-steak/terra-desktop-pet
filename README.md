@@ -7,9 +7,9 @@ this should work on most major things (windows, mac, linux (kde, GNOME, any non-
 ## windows
 
 windows defender will try to nag you about this. i promise you it's not a virus.
-another thing, if you have an [NVIDIA GPU](https://github.com/bevyengine/bevy/issues/7544#issuecomment-2840720210), it may be broken as hell. [there's an open issue for this in bevy](https://github.com/bevyengine/bevy/issues/7544), so it's out of my hands.
+another thing, if you have an [NVIDIA](https://github.com/bevyengine/bevy/issues/7544#issuecomment-2840720210) or AMD GPU, it may be broken as hell. [there's an open issue for this in bevy](https://github.com/bevyengine/bevy/issues/7544), it's out of my hands.
 
-here's how to fix it:
+here's how to fix it on NVIDIA:
 
 1. open NVIDIA Control Panel
 2. go to "Manage 3D Settings"
@@ -17,6 +17,8 @@ here's how to fix it:
 4. make the value for the option "Vulkan/OpenGL present method" be "Prefer native"
 
 after that, you should be able to just open it up and have it work!
+
+i currently don't have a fix for AMD, i'm sorry, i haven't been able to figure it out :c
 
 ## macOS
 
