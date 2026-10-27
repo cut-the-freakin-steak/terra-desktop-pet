@@ -97,7 +97,9 @@ fn reopen_window(
 	windows: Query<(), With<PrimaryWindow>>,
 	config: Res<TWindowConfig>,
 ) {
-	use bevy::window::{CompositeAlphaMode, CursorOptions, WindowLevel, WindowResolution};
+	#[cfg(any(target_os = "macos", target_os = "linux"))]
+	use bevy::window::CompositeAlphaMode;
+	use bevy::window::{CursorOptions, WindowLevel, WindowResolution};
 
 	if !state.reopen_requested || !windows.is_empty() {
 		return;

@@ -21,7 +21,7 @@ on:
 
 jobs:
   warm:
-    name: Warm (${{ matrix.name }})
+    name: Warm Cache ~ ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
 
     strategy:
