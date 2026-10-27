@@ -61,7 +61,7 @@ jobs:
             libxkbcommon-x11-0
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@nightly-2026-10-27
+        uses: dtolnay/rust-toolchain@nightly-2026-10-26
         with:
           targets: ${{ matrix.target }}
 
