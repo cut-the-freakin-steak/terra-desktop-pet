@@ -55,7 +55,7 @@ jobs:
 
       # install the correct rust toolchain and target architecture
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@nightly-2026-10-27
         with:
           targets: ${{ matrix.target }}
 

@@ -75,3 +75,12 @@ hl.window_rule({
 ```
 
 if you have any other window managers with which this app doesn't work, feel free to open an issue (or a pull request!!! :3) describing your problem and potential fixes for it. i would really appreciate it. thank you!!!
+
+# building
+
+if you wanna build the project yourself, you'll have to install the [dioxus-cli](https://docs.rs/crate/dioxus-cli/latest), and the [just command runner](https://github.com/casey/just) (if you don't wanna install just, you can simply look in the Justfile for the commands just is replacing).
+all of the commands you need are in the Justfile! some important ones are:
+
+- `just build`, for building
+- `just run`, for running
+- `just hot`, for hot reloading runs of the app, useful for iteration
