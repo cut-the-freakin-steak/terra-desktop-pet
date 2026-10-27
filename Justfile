@@ -7,6 +7,12 @@ run:
 build:
     dx build --features "bevy_debug"
 
+cargo-run:
+    cargo run --features "bevy_debug"
+
+cargo-build:
+    cargo build --features "bevy_debug"
+
 build-linux-release:
     cargo build --release --target x86_64-unknown-linux-gnu
 

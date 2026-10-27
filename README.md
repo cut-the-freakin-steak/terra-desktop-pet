@@ -78,9 +78,10 @@ if you have any other window managers with which this app doesn't work, feel fre
 
 ## building from source
 
-if you wanna build the project yourself, you'll have to install the [dioxus-cli](https://docs.rs/crate/dioxus-cli/latest), and the [just command runner](https://github.com/casey/just) (if you don't wanna install just, you can simply look in the Justfile for the commands just is replacing).
-all of the commands you need are in the Justfile! some important ones are:
+if you wanna build the project yourself, you'll have to install:
 
-- `just build`, for building
-- `just run`, for running
-- `just hot`, for hot reloading runs of the app, useful for iteration
+- the [dioxus-cli](https://docs.rs/crate/dioxus-cli/latest), only for the hot-reloading, otherwise you can just use cargo, but the Just commands use dioxus.
+- the [Just command runner](https://github.com/casey/just), if you don't wanna install Just, you can simply look in the Justfile for the commands just is replacing.
+- [cargo-packager](https://github.com/crabnebula-dev/cargo-packager), for mac builds outputting a .app.
+
+all of the commands you need are in the Justfile! check it out to see what you want, and then type `just {command}` in your terminal.
