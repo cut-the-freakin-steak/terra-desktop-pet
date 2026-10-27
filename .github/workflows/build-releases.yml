@@ -55,8 +55,9 @@ jobs:
 
       # install the correct rust toolchain and target architecture
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@nightly-2026-10-27
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: nightly-2026-10-27
           targets: ${{ matrix.target }}
 
       # caching
