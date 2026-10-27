@@ -52,6 +52,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             g++ \
+            clang \
+            mold \
             pkg-config \
             libx11-dev \
             libasound2-dev \

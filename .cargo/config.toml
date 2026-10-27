@@ -1,0 +1,39 @@
+# this config requires nightly rust
+
+# cranelift is unstable, may want to change this
+[profile.dev]
+codegen-backend = "cranelift"
+
+# crates compile with llvm still, cranelift is simply for debug speed
+[profile.dev.package."*"]
+codegen-backend = "llvm"
+
+# macos linker is cracked as hell for some reason and is faster than lld and just as fast as mold
+[target.aarch64-apple-darwin]
+rustflags = [
+  "-Zshare-generics=y",
+  "-Zthreads=0",
+  "-Zcache-proc-macros",
+]
+
+[target.x86_64-apple-darwin]
+rustflags = [
+  "-Zshare-generics=y",
+  "-Zthreads=0",
+  "-Zcache-proc-macros",
+]
+
+# mold isnt available on windows, so just use lld
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"
+rustflags = ["-Zshare-generics=n", "-Zthreads=0", "-Zcache-proc-macros"]
+rustdocflags = ["-Clinker=rust-lld.exe"]
+
+# for using mold as the linker on linux:
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-Clink-arg=-fuse-ld=mold", "-Zshare-generics=y", "-Zthreads=0", "-Zcache-proc-macros"]
+rustdocflags = ["-Clink-arg=-fuse-ld=mold"]
+
+[unstable]
+codegen-backend = true
