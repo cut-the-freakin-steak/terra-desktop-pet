@@ -23,7 +23,7 @@ fn main() -> AppExit {
 			transparent_window_plugin,
 		))
 		.add_systems(Startup, setup)
-		.add_systems(Update, move_purple_square_left_and_right)
+		.add_systems(Update, move_jake)
 		.run();
 }
 
@@ -75,7 +75,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		});
 }
 
-fn move_purple_square_left_and_right(
+fn move_jake(
 	mut jake: Single<(&mut Transform, &GlobalTransform, &mut Direction), With<Jake>>,
 	on_monitor_windows: Query<
 		(&Window, &bevy::window::OnMonitor),

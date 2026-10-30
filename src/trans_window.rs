@@ -79,6 +79,9 @@ fn close_window(
 		return;
 	};
 
+	// let width = monitor.physical_width;
+	// let height = monitor.physical_height;
+
 	let width = monitor.physical_width;
 	let height = monitor.physical_height;
 
