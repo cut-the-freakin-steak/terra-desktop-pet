@@ -1,3 +1,4 @@
+mod jake_events;
 mod trans_window;
 
 use bevy::prelude::*;
@@ -5,6 +6,8 @@ use bevy::window::{ExitCondition, Monitor, OnMonitor, PrimaryWindow};
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 
 use trans_window::TransparentWindow;
+
+use jake_events::jake_events;
 
 static JAKE_WIDTH_ISH: f32 = 65.0;
 
@@ -24,9 +27,9 @@ fn main() -> AppExit {
 				.set(ImagePlugin::default_nearest()),
 			transparent_window_plugin,
 		))
-		.add_systems(Update, setup) // technically a setup schedule, but whatever
-		.add_systems(Update, polly)
-		.add_systems(Update, move_jake)
+		.add_systems(Update, setup) // technically a Setup schedule, but whatever
+		.add_systems(Update, jake_intro)
+		.add_systems(Update, jake_events)
 		.run();
 }
 
@@ -37,21 +40,6 @@ struct Jake {
 	pub nose: Sprite,
 	pub bush: Sprite,
 	pub scale: f32,
-}
-
-#[derive(Component)]
-struct Direction(DirectionX, DirectionY);
-
-#[derive(Clone, Copy)]
-enum DirectionX {
-	Left = -1,
-	Right = 1,
-}
-
-#[derive(Clone, Copy)]
-enum DirectionY {
-	Down = -1,
-	Up = 1,
 }
 
 #[derive(Resource)]
@@ -80,6 +68,8 @@ fn setup(
 
 	commands.spawn(Camera2d);
 
+	let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
+
 	let jake_eyes = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_eyes.png"));
 	let jake_nose = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_nose.png"));
 	let jake_bush = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_bush.png"));
@@ -90,18 +80,24 @@ fn setup(
 		scale: 2.0,
 	};
 
+	let jake_starting_pos = (half_monitor_width + JAKE_WIDTH_ISH as f64 + 5.0) as f32;
+
 	commands
 		.spawn((
 			jake.clone(),
-			Transform::default().with_scale(Vec3::new(jake.scale, jake.scale, 0.0)),
-			Direction(DirectionX::Right, DirectionY::Up),
+			Transform::from_xyz(jake_starting_pos, 0.0, 0.0)
+				.with_scale(Vec3::new(jake.scale, jake.scale, 0.0)),
 			GlobalTransform::default(),
 			Visibility::default(),
 			JakeIntroArc {
-				start: Vec3::new(0.0, 100.0, 0.0),
-				end: Vec3::new(-300.0, 30.0, 0.0),
-				duration: 2.0,
-				height: 150.0,
+				start: Vec3::new(jake_starting_pos, 0.0, 0.0),
+				end: Vec3::new(
+					jake_starting_pos - 150.0 * monitor.scale_factor as f32,
+					0.0,
+					0.0,
+				),
+				duration: 1.5,
+				peak_height: 250.0,
 				elapsed: 0.0,
 			},
 		))
@@ -111,57 +107,67 @@ fn setup(
 			parent.spawn((jake_bush, Transform::from_xyz(0.0, -20.0, 0.0)));
 		});
 
-	// this will no longer run
 	commands.insert_resource(SetupComplete);
 }
 
-fn polly(
-	jake_intro_arc: Single<&JakeIntroArc, With<Jake>>,
-	mut transform: Single<&mut Transform, With<Jake>>,
-) {
-	let t = (jake_intro_arc.elapsed / jake_intro_arc.duration).clamp(0.0, 1.0);
-
-	let mut position = jake_intro_arc.start.lerp(jake_intro_arc.end, t);
-	position.y += 4.0 * jake_intro_arc.height * t * (1.0 - t);
-
-	transform.translation = position;
-}
-
 #[derive(Component, Clone, Copy)]
-struct JakeIntroArc {
+pub struct JakeIntroArc {
 	start: Vec3,
 	end: Vec3,
+	peak_height: f32,
 	duration: f32,
-	height: f32,
 	elapsed: f32,
 }
 
+#[derive(Resource)]
+struct JakeIntroComplete;
+
 fn jake_intro(
-	mut jake: Single<(&mut Jake, &mut Transform, &GlobalTransform, &mut Direction)>,
-	on_monitor_windows: Query<(&Window, &bevy::window::OnMonitor), With<PrimaryWindow>>,
-	monitors: Query<&Monitor>,
+	mut commands: Commands,
+	mut jake: Single<(Entity, &mut Transform, &mut JakeIntroArc)>,
 	time: Res<Time>,
+	complete: Option<Res<JakeIntroComplete>>,
 ) {
-	let (jake, transform, g_transform, direction) = &mut *jake;
-
-	let Ok((_, on_monitor)) = on_monitor_windows.single()
-	else {
+	if complete.is_some() {
 		return;
-	};
+	}
 
-	let Ok(monitor) = monitors.get(on_monitor.0)
-	else {
-		return;
-	};
+	let (entity, transform, intro_arc) = &mut *jake;
+
+	intro_arc.elapsed += time.delta_secs();
+	let duration = (intro_arc.elapsed / intro_arc.duration).clamp(0.0, 1.0);
+
+	let mut current = intro_arc.start.lerp(intro_arc.end, duration);
+
+	// parabolic arc offset for y
+	// formula: 4 * height * duration * (1 - duration)
+	// evaluates to 0 at duration=0 and duration=1, and 'peak_height' at duration=0.5
+	// it's just a quadratic lmao
+	let arc_offset = 4.0 * intro_arc.peak_height * duration * (1.0 - duration);
+
+	// combine linear height interpolation with the arc offset
+	let base_y = intro_arc.start.y + (intro_arc.end.y - intro_arc.start.y) * duration;
+	current.y = base_y + arc_offset;
+
+	transform.translation = current;
+
+	const MAGIC_NUMBER: f32 = 12.40; // genuinely no rationale behind this number. pure trial and error.
+	transform.rotate(Quat::from_rotation_z(MAGIC_NUMBER * time.delta_secs()));
+
+	// finishes animation
+	if duration >= 1.0 {
+		transform.rotation = Quat::from_array([0.0; 4]);
+		commands.entity(*entity).remove::<JakeIntroArc>();
+		commands.insert_resource(JakeIntroComplete);
+	}
 }
 
-fn move_jake(
-	mut jake: Single<(&Jake, &mut Transform, &GlobalTransform, &mut Direction)>,
-	on_monitor_windows: Query<(&Window, &bevy::window::OnMonitor), With<PrimaryWindow>>,
-	monitors: Query<&Monitor>,
-	time: Res<Time>,
+fn jake_events_prev(// mut jake: Single<(&Jake, &mut Transform, &GlobalTransform)>,
+	// on_monitor_windows: Query<(&Window, &bevy::window::OnMonitor), With<PrimaryWindow>>,
+	// monitors: Query<&Monitor>,
+	// time: Res<Time>,
 ) {
-	// 	let (jake, transform, g_transform, direction) = &mut *jake;
+	// 	let (jake, transform, g_transform) = &mut *jake;
 	//
 	// 	let Ok((_, on_monitor)) = on_monitor_windows.single()
 	// 	else {
