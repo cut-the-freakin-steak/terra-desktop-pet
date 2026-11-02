@@ -28,8 +28,9 @@ fn main() -> AppExit {
 			transparent_window_plugin,
 		))
 		.add_systems(Update, setup) // technically a Setup schedule, but whatever
-		.add_systems(Update, jake_intro)
-		.add_systems(Update, jake_events)
+		.add_systems(FixedUpdate, jake_intro)
+		.add_systems(FixedUpdate, jake_squash_n_stretch)
+		.add_systems(FixedUpdate, jake_events)
 		.run();
 }
 
@@ -48,7 +49,7 @@ struct SetupComplete;
 fn setup(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	on_monitor_windows: Query<(&Window, &OnMonitor), With<PrimaryWindow>>,
+	mut on_monitor_windows: Query<(&mut Window, &OnMonitor), With<PrimaryWindow>>,
 	monitors: Query<&Monitor>,
 	complete: Option<Res<SetupComplete>>,
 ) {
@@ -56,7 +57,7 @@ fn setup(
 		return;
 	}
 
-	let Ok((_, on_monitor)) = on_monitor_windows.single()
+	let Ok((mut window, on_monitor)) = on_monitor_windows.single_mut()
 	else {
 		return;
 	};
@@ -66,7 +67,7 @@ fn setup(
 		return;
 	};
 
-	commands.spawn(Camera2d);
+	window.present_mode = bevy::window::PresentMode::AutoVsync;
 
 	let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
 
@@ -80,8 +81,9 @@ fn setup(
 		scale: 2.0,
 	};
 
-	let jake_starting_pos = (half_monitor_width + JAKE_WIDTH_ISH as f64 + 5.0) as f32;
+	let jake_starting_pos = (-half_monitor_width - JAKE_WIDTH_ISH as f64 - 25.0) as f32; // cookin up sum bs
 
+	commands.spawn(Camera2d);
 	commands
 		.spawn((
 			jake.clone(),
@@ -89,15 +91,21 @@ fn setup(
 				.with_scale(Vec3::new(jake.scale, jake.scale, 0.0)),
 			GlobalTransform::default(),
 			Visibility::default(),
+			bevy::sprite::Anchor::CENTER,
 			JakeIntroArc {
 				start: Vec3::new(jake_starting_pos, 0.0, 0.0),
 				end: Vec3::new(
-					jake_starting_pos - 150.0 * monitor.scale_factor as f32,
+					jake_starting_pos + 150.0 * monitor.scale_factor as f32,
 					0.0,
 					0.0,
 				),
 				duration: 1.5,
 				peak_height: 250.0,
+				elapsed: 0.0,
+			},
+			JakeSquashNStretch {
+				duration: 1.0,
+				intensity: 1.0,
 				elapsed: 0.0,
 			},
 		))
@@ -151,7 +159,7 @@ fn jake_intro(
 
 	transform.translation = current;
 
-	const MAGIC_NUMBER: f32 = 12.40; // genuinely no rationale behind this number. pure trial and error.
+	const MAGIC_NUMBER: f32 = -12.40; // genuinely no rationale behind this number. pure trial and error.
 	transform.rotate(Quat::from_rotation_z(MAGIC_NUMBER * time.delta_secs()));
 
 	// finishes animation
@@ -162,7 +170,51 @@ fn jake_intro(
 	}
 }
 
-fn jake_events_prev(// mut jake: Single<(&Jake, &mut Transform, &GlobalTransform)>,
+#[derive(Component, Clone, Copy)]
+struct JakeSquashNStretch {
+	pub duration: f32,
+	pub intensity: f32, // how extreme the squash/stretch is
+	pub elapsed: f32,
+}
+
+#[derive(Resource)]
+pub struct JakeSquashNStretchCompleted;
+
+fn jake_squash_n_stretch(
+	mut commands: Commands,
+	mut jake: Single<(Entity, &mut Transform, &mut JakeSquashNStretch, &mut Jake)>,
+	time: Res<Time>,
+	jake_intro_complete: Option<Res<JakeIntroComplete>>,
+) {
+	if jake_intro_complete.is_none() {
+		return;
+	}
+
+	let (entity, transform, effect, jake) = &mut *jake;
+
+	effect.elapsed += time.delta_secs();
+	let t = (effect.elapsed / effect.duration).clamp(0.0, 1.0);
+
+	// create a decaying oscillation using a sine wave multiplied by an exponential decay
+	let decay = (1.0 - t).powi(2); // fades out as it finishes
+	let wave = (t * std::f32::consts::TAU * 3.0).sin() * effect.intensity * decay;
+
+	// squash on X/Z (wider) when stretching on Y (taller), and vice versa to preserve volume
+	let scale_factor = 2.0; // Your base scale (e.g., jake.scale)
+	// transform.scale.x = scale_factor * (1.0 - wave);
+	transform.scale.y = scale_factor * (1.0 - wave);
+
+	// remove the component when the effect finishes
+	if t >= 1.0 {
+		// reset to default base scale
+		transform.scale = Vec3::splat(scale_factor);
+		commands.entity(*entity).remove::<JakeSquashNStretch>();
+		commands.insert_resource(JakeSquashNStretchCompleted);
+	}
+}
+
+fn jake_events_prev(//
+	// mut jake: Single<(&Jake, &mut Transform, &GlobalTransform)>,
 	// on_monitor_windows: Query<(&Window, &bevy::window::OnMonitor), With<PrimaryWindow>>,
 	// monitors: Query<&Monitor>,
 	// time: Res<Time>,
