@@ -74,14 +74,14 @@ hl.window_rule({
 })
 ```
 
-if you have any other window managers with which this app doesn't work, feel free to open an issue (or a pull request!!! :3) describing your problem and potential fixes for it. i would really appreciate it. thank you!!!
+if you have any other window managers with which this app doesn't work, feel free to open an issue (or a pull request!!! :3) describing your problem and potential fixes for it! i would really appreciate it. thank you!!! :3
 
 ## building from source
 
 if you wanna build the project yourself, you'll have to install:
 
 - the [Just command runner](https://github.com/casey/just), if you don't wanna install Just, you can simply look in the Justfile for the commands just is replacing.
-- the [dioxus-cli](https://docs.rs/crate/dioxus-cli/latest), only for the debug builds with hot-reloading. if you dont want to use dioxus, you can run `just cargo-*` instead of `just *`.
-- [cargo-packager](https://github.com/crabnebula-dev/cargo-packager), for mac builds outputting a .app.
+- the [dioxus-cli](https://docs.rs/crate/dioxus-cli/latest), only for the debug builds with hot-reloading. if you don't want to use dioxus, you can run `just cargo-*` instead of `just *`.
+- [cargo-packager](https://github.com/crabnebula-dev/cargo-packager), for mac builds outputting a *.app file.
 
-all of the commands you need are in the Justfile! check it out to see what you want, and then type `just {command}` in your terminal.
+all of the commands you need are in the Justfile! check it out to see what you want, and then type `just {command}` in your terminal. :3
