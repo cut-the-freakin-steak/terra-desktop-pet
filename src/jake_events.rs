@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{DirX, DirY, Direction, UsingMonitor};
+use crate::{DirX, DirY, Direction, Position, UsingMonitor};
 use crate::{JAKE_WIDTH_ISH, Jake, JakeState};
 
 #[derive(Component, Clone, Copy)]
@@ -85,14 +85,15 @@ pub fn jake_squash_n_stretch(
 }
 
 pub fn jake_events(
-	mut jake: Single<(&Jake, &mut Transform, &GlobalTransform, &mut Direction)>,
+	mut jake: Single<(&Jake, &mut Direction, &mut Position)>,
 	monitor: Res<UsingMonitor>,
 	time: Res<Time>,
 ) {
 	// this is for future random events that jAkE can partake in
 	match rand::random_range(0..100) {
 		_ => {
-			let (jake, transform, g_transform, direction) = &mut *jake;
+			let (jake, direction, position) = &mut *jake;
+			let (mut position, global_position) = (position.current, position.current_global);
 			let monitor = &monitor.0;
 
 			let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
@@ -100,37 +101,37 @@ pub fn jake_events(
 
 			// right side of monitor
 			if half_monitor_width
-				<= (g_transform.translation().x + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
+				<= (global_position.x + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
 			{
 				direction.0 = DirX::Left;
 			}
 			// left side of monitor
 			else if -half_monitor_width
-				>= (g_transform.translation().x - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
+				>= (global_position.x - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
 			{
 				direction.0 = DirX::Right;
 			}
 			// top of monitor
 			if half_monitor_height
-				<= (g_transform.translation().y + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
+				<= (global_position.y + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
 			{
 				direction.1 = DirY::Down;
 			}
 			// bottom of monitor
 			else if -half_monitor_height
-				>= (g_transform.translation().y - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
+				>= (global_position.y - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
 			{
 				direction.1 = DirY::Up;
 			}
 
-			match direction.0 {
-				DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
-				DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
-			}
+			// match direction.0 {
+			// 	DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
+			// 	DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
+			// }
 
-			const SPEED: f32 = 250.0;
-			transform.translation.x += direction.0 as i8 as f32 * SPEED * time.delta_secs();
-			transform.translation.y += direction.1 as i8 as f32 * SPEED * time.delta_secs();
+			const SPEED: f32 = 150.0;
+			// transform.translation += direction.as_vec3() * SPEED * 0.01;
+			position += direction.as_vec3() * SPEED * 0.01;
 		}
 	}
 }

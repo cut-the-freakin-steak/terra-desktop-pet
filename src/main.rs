@@ -1,5 +1,5 @@
-mod direction;
 mod jake_events;
+mod movable_helpers;
 mod trans_window;
 
 use bevy::prelude::*;
@@ -8,9 +8,8 @@ use bevy_embedded_assets::EmbeddedAssetPlugin;
 
 use trans_window::TransparentWindow;
 
-use direction::*;
-
 use jake_events::*;
+use movable_helpers::*;
 
 static JAKE_WIDTH_ISH: f32 = 65.0;
 
@@ -45,6 +44,7 @@ fn main() -> AppExit {
 				})
 				.set(ImagePlugin::default_nearest()),
 			transparent_window_plugin,
+			PositionPlugin,
 		))
 		.init_state::<AppState>()
 		.init_state::<JakeState>()
@@ -106,20 +106,15 @@ fn setup(
 	};
 
 	// cookin up sum bs
-	let jake_starting_pos = -half_monitor_width as f32 - JAKE_WIDTH_ISH - 25.0;
+	let jake_starting_pos_x = -half_monitor_width as f32 - JAKE_WIDTH_ISH - 25.0;
 
 	commands.spawn(Camera2d);
 	commands
 		.spawn((
 			jake.clone(),
-			Transform::from_xyz(jake_starting_pos, 0.0, 0.0)
-				.with_scale(Vec3::new(jake.scale, jake.scale, 0.0)),
-			GlobalTransform::default(),
-			Visibility::default(),
-			Direction(DirX::Right, DirY::Up),
 			JakeIntroArc {
-				start: Vec3::new(jake_starting_pos, 0.0, 0.0),
-				end: Vec3::new(jake_starting_pos + 150.0 * jake.scale, 0.0, 0.0),
+				start: Vec3::new(jake_starting_pos_x, 0.0, 0.0),
+				end: Vec3::new(jake_starting_pos_x + 150.0 * jake.scale, 0.0, 0.0),
 				duration: 1.5,
 				peak_height: 250.0,
 				elapsed: 0.0,
@@ -129,6 +124,12 @@ fn setup(
 				intensity: rand::random_range(0.1..=20.0),
 				elapsed: 0.0,
 			},
+			Position::new(Vec3::new(jake_starting_pos_x, 0.0, 0.0)),
+			Transform::from_xyz(jake_starting_pos_x, 0.0, 0.0)
+				.with_scale(Vec3::new(jake.scale, jake.scale, 0.0)),
+			GlobalTransform::default(),
+			Visibility::default(),
+			Direction(DirX::Right, DirY::Up),
 		))
 		.with_children(|parent| {
 			parent.spawn((jake_eyes, Transform::from_xyz(-2.0, 13.0, 0.0)));
