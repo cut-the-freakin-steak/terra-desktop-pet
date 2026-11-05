@@ -21,11 +21,12 @@ pub struct JakeSquashNStretch {
 
 pub fn jake_intro(
 	mut commands: Commands,
-	mut jake: Single<(Entity, &mut Transform, &mut JakeIntroArc)>,
+	mut jake: Single<(Entity, &mut Transform, &mut Position, &mut JakeIntroArc)>,
 	time: Res<Time>,
 	mut next_jake_state: ResMut<NextState<JakeState>>,
 ) {
-	let (entity, transform, intro_arc) = &mut *jake;
+	let (entity, transform, position, intro_arc) = &mut *jake;
+	let position = &mut position.current;
 
 	// like this whole thing is copy-pasted from stack overflow lmaoo
 	intro_arc.elapsed += time.delta_secs();
@@ -43,7 +44,7 @@ pub fn jake_intro(
 	let base_y = intro_arc.start.y + (intro_arc.end.y - intro_arc.start.y) * t;
 	current.y = base_y + arc_offset;
 
-	transform.translation = current;
+	*position = current;
 
 	const MAGIC_NUMBER: f32 = -12.40; // genuinely no rationale behind this number. pure trial and error.
 	transform.rotate(Quat::from_rotation_z(MAGIC_NUMBER * time.delta_secs()));
@@ -85,15 +86,15 @@ pub fn jake_squash_n_stretch(
 }
 
 pub fn jake_events(
-	mut jake: Single<(&Jake, &mut Direction, &mut Position)>,
+	mut jake: Single<(&Jake, &mut Position, &mut Direction)>,
 	monitor: Res<UsingMonitor>,
-	time: Res<Time>,
+	// time: Res<Time>,
 ) {
 	// this is for future random events that jAkE can partake in
 	match rand::random_range(0..100) {
 		_ => {
-			let (jake, direction, position) = &mut *jake;
-			let (mut position, global_position) = (position.current, position.current_global);
+			let (jake, position, direction) = &mut *jake;
+			let (global_position, position) = (position.current_global, &mut position.current);
 			let monitor = &monitor.0;
 
 			let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
@@ -131,7 +132,7 @@ pub fn jake_events(
 
 			const SPEED: f32 = 150.0;
 			// transform.translation += direction.as_vec3() * SPEED * 0.01;
-			position += direction.as_vec3() * SPEED * 0.01;
+			*position += direction.as_vec3() * SPEED * 0.01;
 		}
 	}
 }

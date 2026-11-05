@@ -70,8 +70,8 @@ impl Plugin for PositionPlugin {
 
 /// makes the previous position the current position during FixedPreUpdate.
 pub fn advance_position_history(query: Query<&mut Position>) {
-	for mut pos in query {
-		pos.previous = pos.current
+	for mut position in query {
+		position.previous = position.current
 	}
 }
 
