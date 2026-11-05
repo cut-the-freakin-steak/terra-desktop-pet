@@ -58,11 +58,23 @@ impl Position {
 	}
 }
 
+/// this lets the position systems know whether to round pixels (`PixelArt`) or not (`Smooth`)
+#[derive(Resource, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RenderStyle {
+	#[default]
+	Smooth,
+	PixelArt,
+}
+
 /// plugin necessary for movement (and interpolation) with `Position`.
-pub struct PositionPlugin;
+pub struct PositionPlugin {
+	pub render_style: RenderStyle,
+}
 
 impl Plugin for PositionPlugin {
 	fn build(&self, app: &mut App) {
+		app.insert_resource(self.render_style);
+
 		app.add_systems(FixedPreUpdate, advance_position_history);
 		app.add_systems(Update, position_interpolation);
 	}
@@ -78,24 +90,30 @@ pub fn advance_position_history(query: Query<&mut Position>) {
 /// interpolates translation every real frame for smooth movement in Update
 pub fn position_interpolation(
 	fixed_time: Res<Time<Fixed>>,
-	mut query: Query<(&mut Transform, &mut Position)>,
-	global_transform_opt: Option<Query<&GlobalTransform>>,
+	render_style: Res<RenderStyle>,
+	mut query: Query<(&mut Transform, &mut Position, Option<&GlobalTransform>)>,
 ) {
 	let alpha = fixed_time.overstep_fraction();
 
-	for (mut transform, mut position) in &mut query {
+	for (mut transform, mut position, global_transform_opt) in &mut query {
 		// lerp between the previous and current fixed ticks
 		let interpolated = position.previous.lerp(position.current, alpha);
 
 		// apply to the actual visual transform
-		transform.translation.x = interpolated.x;
-		transform.translation.y = interpolated.y;
+		match *render_style {
+			RenderStyle::Smooth => {
+				transform.translation.x = interpolated.x;
+				transform.translation.y = interpolated.y;
+			}
+			RenderStyle::PixelArt => {
+				transform.translation.x = interpolated.x.round();
+				transform.translation.y = interpolated.y.round();
+			}
+		}
 		transform.translation.z = interpolated.z;
 
-		if let Some(g_transform_query) = global_transform_opt {
-			for g_transform in g_transform_query {
-				position.current_global = g_transform.translation();
-			}
+		if let Some(g_transform) = global_transform_opt {
+			position.current_global = g_transform.translation();
 		}
 	}
 }

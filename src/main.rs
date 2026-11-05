@@ -44,7 +44,9 @@ fn main() -> AppExit {
 				})
 				.set(ImagePlugin::default_nearest()),
 			transparent_window_plugin,
-			PositionPlugin,
+			PositionPlugin {
+				render_style: RenderStyle::PixelArt,
+			},
 		))
 		.init_state::<AppState>()
 		.init_state::<JakeState>()

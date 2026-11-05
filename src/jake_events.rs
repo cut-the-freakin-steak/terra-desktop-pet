@@ -22,7 +22,7 @@ pub struct JakeSquashNStretch {
 pub fn jake_intro(
 	mut commands: Commands,
 	mut jake: Single<(Entity, &mut Transform, &mut Position, &mut JakeIntroArc)>,
-	time: Res<Time>,
+	time: Res<Time<Fixed>>,
 	mut next_jake_state: ResMut<NextState<JakeState>>,
 ) {
 	let (entity, transform, position, intro_arc) = &mut *jake;
@@ -60,7 +60,7 @@ pub fn jake_intro(
 pub fn jake_squash_n_stretch(
 	mut commands: Commands,
 	mut jake: Single<(Entity, &mut Transform, &mut JakeSquashNStretch, &mut Jake)>,
-	time: Res<Time>,
+	time: Res<Time<Fixed>>,
 	mut next_jake_state: ResMut<NextState<JakeState>>,
 ) {
 	let (entity, transform, effect, jake) = &mut *jake;
@@ -86,14 +86,14 @@ pub fn jake_squash_n_stretch(
 }
 
 pub fn jake_events(
-	mut jake: Single<(&Jake, &mut Position, &mut Direction)>,
+	mut jake: Single<(&Jake, &mut Position, &mut Direction, &mut Transform)>,
 	monitor: Res<UsingMonitor>,
-	// time: Res<Time>,
+	time: Res<Time<Fixed>>,
 ) {
 	// this is for future random events that jAkE can partake in
 	match rand::random_range(0..100) {
 		_ => {
-			let (jake, position, direction) = &mut *jake;
+			let (jake, position, direction, transform) = &mut *jake;
 			let (global_position, position) = (position.current_global, &mut position.current);
 			let monitor = &monitor.0;
 
@@ -125,14 +125,13 @@ pub fn jake_events(
 				direction.1 = DirY::Up;
 			}
 
-			// match direction.0 {
-			// 	DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
-			// 	DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
-			// }
+			match direction.0 {
+				DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
+				DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
+			}
 
-			const SPEED: f32 = 150.0;
-			// transform.translation += direction.as_vec3() * SPEED * 0.01;
-			*position += direction.as_vec3() * SPEED * 0.01;
+			const SPEED: f32 = 550.0;
+			*position += direction.as_vec3() * SPEED * time.delta_secs();
 		}
 	}
 }
