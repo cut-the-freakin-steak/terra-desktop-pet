@@ -873,8 +873,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_embedded_assets"
-version = "0.16.0"
-source = "git+https://github.com/vleue/bevy_embedded_assets?rev=refs%2Fpull%2F39%2Fhead#77305345ed2fda96a582e4cf853481f0d4018253"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7acf19ac6240c28d62e5cf75b0284f118883393444bf0fcc2282fd523232d48"
 dependencies = [
  "bevy_app",
  "bevy_asset",

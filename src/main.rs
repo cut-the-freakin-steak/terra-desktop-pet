@@ -11,7 +11,7 @@ use trans_window::TransparentWindow;
 use jake_events::*;
 use movable_helpers::*;
 
-static JAKE_WIDTH_ISH: f32 = 65.0;
+const JAKE_WIDTH_ISH: f32 = 65.0;
 
 #[derive(Default, States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -48,7 +48,7 @@ fn main() -> AppExit {
 		))
 		.init_state::<AppState>()
 		.init_state::<JakeState>()
-		.add_systems(Update, setup.run_if(in_state(AppState::Setup))) // technically a Setup schedule, but whatever
+		.add_systems(Update, setup_game.run_if(in_state(AppState::Setup))) // technically a Setup schedule, but whatever
 		.add_systems(
 			FixedUpdate,
 			(
@@ -73,7 +73,7 @@ pub struct Jake {
 	pub scale: f32,
 }
 
-fn setup(
+fn setup_game(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
 	mut on_monitor_windows: Query<(&mut Window, &OnMonitor), With<PrimaryWindow>>,

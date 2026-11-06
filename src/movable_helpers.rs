@@ -93,9 +93,7 @@ pub fn position_interpolation(
 		let interpolated = position.previous.lerp(position.current, alpha);
 
 		// apply to the actual visual transform
-		transform.translation.x = interpolated.x;
-		transform.translation.y = interpolated.y;
-		transform.translation.z = interpolated.z;
+		transform.translation = interpolated;
 	}
 }
 

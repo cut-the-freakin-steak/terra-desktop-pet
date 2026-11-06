@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 use crate::{DirX, DirY, Direction, Position, UsingMonitor};
 use crate::{JAKE_WIDTH_ISH, Jake, JakeState};
@@ -125,12 +126,12 @@ pub fn jake_events(
 				direction.1 = DirY::Up;
 			}
 
-			// match direction.0 {
-			// 	DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
-			// 	DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
-			// }
+			match direction.0 {
+				DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
+				DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
+			}
 
-			const SPEED: f32 = 50.0;
+			const SPEED: f32 = 250.0;
 			*position += direction.as_vec3() * SPEED * time.delta_secs();
 		}
 	}
