@@ -125,12 +125,12 @@ pub fn jake_events(
 				direction.1 = DirY::Up;
 			}
 
-			match direction.0 {
-				DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
-				DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
-			}
+			// match direction.0 {
+			// 	DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
+			// 	DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
+			// }
 
-			const SPEED: f32 = 550.0;
+			const SPEED: f32 = 50.0;
 			*position += direction.as_vec3() * SPEED * time.delta_secs();
 		}
 	}
