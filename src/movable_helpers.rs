@@ -3,7 +3,9 @@
 use bevy::prelude::*;
 
 /// a wrapper for `Transform::translation`, which does FixedUpdate interpolation for smooth-looking movement even when using FixedUpdate, which would usually make movement look jittery
+/// requires your entity to have the `Transform` component, preferably with the same starting position.
 #[derive(Component, Clone, Copy, Default)]
+#[require(Transform)]
 pub struct Position {
 	pub current: Vec3,
 	pub current_global: Vec3,
@@ -58,61 +60,48 @@ impl Position {
 	}
 }
 
-/// this lets the position systems know whether to round pixels (`PixelArt`) or not (`Smooth`)
-#[derive(Resource, Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum RenderStyle {
-	#[default]
-	Smooth,
-	PixelArt,
-}
-
 /// plugin necessary for movement (and interpolation) with `Position`.
-pub struct PositionPlugin {
-	pub render_style: RenderStyle,
-}
+pub struct PositionPlugin;
 
 impl Plugin for PositionPlugin {
 	fn build(&self, app: &mut App) {
-		app.insert_resource(self.render_style);
-
 		app.add_systems(FixedPreUpdate, advance_position_history);
 		app.add_systems(Update, position_interpolation);
+		app.add_systems(
+			PostUpdate,
+			global_position_interpolation.after(TransformSystems::Propagate),
+		);
 	}
 }
 
 /// makes the previous position the current position during FixedPreUpdate.
 pub fn advance_position_history(query: Query<&mut Position>) {
 	for mut position in query {
-		position.previous = position.current
+		position.previous = position.current;
 	}
 }
 
 /// interpolates translation every real frame for smooth movement in Update
 pub fn position_interpolation(
 	fixed_time: Res<Time<Fixed>>,
-	render_style: Res<RenderStyle>,
-	mut query: Query<(&mut Transform, &mut Position, Option<&GlobalTransform>)>,
+	mut query: Query<(&mut Transform, &mut Position)>,
 ) {
 	let alpha = fixed_time.overstep_fraction();
 
-	for (mut transform, mut position, global_transform_opt) in &mut query {
+	for (mut transform, position) in &mut query {
 		// lerp between the previous and current fixed ticks
 		let interpolated = position.previous.lerp(position.current, alpha);
 
 		// apply to the actual visual transform
-		match *render_style {
-			RenderStyle::Smooth => {
-				transform.translation.x = interpolated.x;
-				transform.translation.y = interpolated.y;
-			}
-			RenderStyle::PixelArt => {
-				transform.translation.x = interpolated.x.round();
-				transform.translation.y = interpolated.y.round();
-			}
-		}
+		transform.translation.x = interpolated.x;
+		transform.translation.y = interpolated.y;
 		transform.translation.z = interpolated.z;
+	}
+}
 
-		if let Some(g_transform) = global_transform_opt {
+pub fn global_position_interpolation(mut query: Query<(Option<&GlobalTransform>, &mut Position)>) {
+	for (g_transform_opt, mut position) in &mut query {
+		if let Some(g_transform) = g_transform_opt {
 			position.current_global = g_transform.translation();
 		}
 	}
