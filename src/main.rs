@@ -124,17 +124,26 @@ fn setup_game(
 				intensity: rand::random_range(0.1..=20.0),
 				elapsed: 0.0,
 			},
-			Position::new(Vec3::new(jake_starting_pos_x, 0.0, 0.0)),
 			Transform::from_xyz(jake_starting_pos_x, 0.0, 0.0)
-				.with_scale(Vec3::new(jake.scale, jake.scale, 0.0)),
+				.with_scale(Vec3::new(jake.scale, jake.scale, 0.0))
+				.into_fixed_bundle(),
 			GlobalTransform::default(),
 			Visibility::default(),
 			Direction(DirX::Right, DirY::Up),
 		))
 		.with_children(|parent| {
-			parent.spawn((jake_eyes, Transform::from_xyz(-2.0, 13.0, 0.0)));
-			parent.spawn((jake_nose, Transform::from_xyz(15.0, 4.0, 0.0)));
-			parent.spawn((jake_bush, Transform::from_xyz(0.0, -20.0, 0.0)));
+			parent.spawn((
+				jake_eyes,
+				Transform::from_xyz(-2.0, 13.0, 0.0).into_fixed_bundle(),
+			));
+			parent.spawn((
+				jake_nose,
+				Transform::from_xyz(15.0, 4.0, 0.0).into_fixed_bundle(),
+			));
+			parent.spawn((
+				jake_bush,
+				Transform::from_xyz(0.0, -20.0, 0.0).into_fixed_bundle(),
+			));
 		});
 
 	commands.insert_resource(UsingMonitor(monitor.clone()));

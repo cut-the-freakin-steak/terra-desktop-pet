@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+// use bevy::window::PrimaryWindow;
 
-use crate::{DirX, DirY, Direction, Position, UsingMonitor};
+use crate::{DirX, DirY, Direction, FixedTransform, UsingMonitor};
 use crate::{JAKE_WIDTH_ISH, Jake, JakeState};
 
 #[derive(Component, Clone, Copy)]
@@ -22,12 +22,12 @@ pub struct JakeSquashNStretch {
 
 pub fn jake_intro(
 	mut commands: Commands,
-	mut jake: Single<(Entity, &mut Transform, &mut Position, &mut JakeIntroArc)>,
+	mut jake: Single<(Entity, &mut FixedTransform, &mut JakeIntroArc)>,
 	time: Res<Time<Fixed>>,
 	mut next_jake_state: ResMut<NextState<JakeState>>,
 ) {
-	let (entity, transform, position, intro_arc) = &mut *jake;
-	let position = &mut position.current;
+	let (entity, f_transform, intro_arc) = &mut *jake;
+	let translation = f_transform.translation_mut();
 
 	// like this whole thing is copy-pasted from stack overflow lmaoo
 	intro_arc.elapsed += time.delta_secs();
@@ -45,14 +45,15 @@ pub fn jake_intro(
 	let base_y = intro_arc.start.y + (intro_arc.end.y - intro_arc.start.y) * t;
 	current.y = base_y + arc_offset;
 
-	*position = current;
+	*translation = current;
 
 	const MAGIC_NUMBER: f32 = -12.40; // genuinely no rationale behind this number. pure trial and error.
-	transform.rotate(Quat::from_rotation_z(MAGIC_NUMBER * time.delta_secs()));
+	f_transform.rotate(Quat::from_rotation_z(MAGIC_NUMBER * time.delta_secs()));
 
 	// finishes animation
 	if t >= 1.0 {
-		transform.rotation = Quat::IDENTITY; // Quat::IDENTITY resets to default rotation (using a 0'd array didn't work well lmao)
+		// Quat::IDENTITY resets to default rotation (using a 0'd array didn't work well lmao)
+		*f_transform.rotation_mut() = Quat::IDENTITY;
 		commands.entity(*entity).remove::<JakeIntroArc>();
 		next_jake_state.set(JakeState::SquashAndStretch);
 	}
@@ -60,7 +61,12 @@ pub fn jake_intro(
 
 pub fn jake_squash_n_stretch(
 	mut commands: Commands,
-	mut jake: Single<(Entity, &mut Transform, &mut JakeSquashNStretch, &mut Jake)>,
+	mut jake: Single<(
+		Entity,
+		&mut FixedTransform,
+		&mut JakeSquashNStretch,
+		&mut Jake,
+	)>,
 	time: Res<Time<Fixed>>,
 	mut next_jake_state: ResMut<NextState<JakeState>>,
 ) {
@@ -74,65 +80,61 @@ pub fn jake_squash_n_stretch(
 	let decay = (1.0 - t).powi(2); // fades out as it finishes
 	let wave = (t * std::f32::consts::TAU * 3.0).sin() * effect.intensity * decay;
 
-	transform.scale.x = jake.scale * (1.0 + wave);
-	transform.scale.y = jake.scale * (1.0 - wave);
+	transform.scale_mut().x = jake.scale * (1.0 + wave);
+	transform.scale_mut().y = jake.scale * (1.0 - wave);
 
 	// remove the component when the effect finishes
 	if t >= 1.0 {
 		// reset to default base scale
-		transform.scale = Vec3::splat(jake.scale);
+		*transform.scale_mut() = Vec3::splat(jake.scale);
 		commands.entity(*entity).remove::<JakeSquashNStretch>();
 		next_jake_state.set(JakeState::Roaming);
 	}
 }
 
 pub fn jake_events(
-	mut jake: Single<(&Jake, &mut Position, &mut Direction, &mut Transform)>,
+	mut jake: Single<(&Jake, &mut FixedTransform, &GlobalTransform, &mut Direction)>,
 	monitor: Res<UsingMonitor>,
 	time: Res<Time<Fixed>>,
 ) {
 	// this is for future random events that jAkE can partake in
 	match rand::random_range(0..100) {
 		_ => {
-			let (jake, position, direction, transform) = &mut *jake;
-			let (global_position, position) = (position.current_global, &mut position.current);
+			let (jake, f_transform, g_transform, direction) = &mut *jake;
+			let g_position = g_transform.translation();
 			let monitor = &monitor.0;
 
 			let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
 			let half_monitor_height = (monitor.physical_height as f64 / monitor.scale_factor) / 2.0;
 
 			// right side of monitor
-			if half_monitor_width
-				<= (global_position.x + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
-			{
+			if half_monitor_width <= (g_position.x + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
 				direction.0 = DirX::Left;
 			}
 			// left side of monitor
 			else if -half_monitor_width
-				>= (global_position.x - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
+				>= (g_position.x - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
 			{
 				direction.0 = DirX::Right;
 			}
 			// top of monitor
-			if half_monitor_height
-				<= (global_position.y + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
-			{
+			if half_monitor_height <= (g_position.y + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
 				direction.1 = DirY::Down;
 			}
 			// bottom of monitor
 			else if -half_monitor_height
-				>= (global_position.y - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
+				>= (g_position.y - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
 			{
 				direction.1 = DirY::Up;
 			}
 
 			match direction.0 {
-				DirX::Left => transform.rotate(Quat::from_rotation_z(0.05)),
-				DirX::Right => transform.rotate(Quat::from_rotation_z(-0.05)),
+				DirX::Left => f_transform.rotate(Quat::from_rotation_z(0.05)),
+				DirX::Right => f_transform.rotate(Quat::from_rotation_z(-0.05)),
 			}
 
 			const SPEED: f32 = 250.0;
-			*position += direction.as_vec3() * SPEED * time.delta_secs();
+			*f_transform.translation_mut() += direction.as_vec3() * SPEED * time.delta_secs();
 		}
 	}
 }

@@ -1,0 +1,7 @@
+unstable_features = true
+
+hard_tabs = true
+tab_spaces = 4
+
+control_brace_style = "ClosingNextLine"
+float_literal_trailing_zero = "IfNoPostfix"

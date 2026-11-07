@@ -2,61 +2,50 @@
 
 use bevy::prelude::*;
 
-/// a wrapper for `Transform::translation`, which does FixedUpdate interpolation for smooth-looking movement even when using FixedUpdate, which would usually make movement look jittery
-/// requires your entity to have the `Transform` component, preferably with the same starting position.
+/// wrapper for `Transform`, which does `FixedUpdate` interpolation for smooth-looking movement,
+/// because it would usually look jittery
+///
+/// requires entity to have the `Transform` component, preferably with the same starting position.
+/// this process can be made trivial by using `FixedTransformBundle` like this:
+/// ```rs
+/// Transform::from_xyz(x, y, z).into_fixed_bundle();
+/// ```
 #[derive(Component, Clone, Copy, Default)]
-#[require(Transform)]
-pub struct Position {
-	pub current: Vec3,
-	pub current_global: Vec3,
-	pub previous: Vec3,
+pub struct FixedTransform {
+	pub current: Transform,
+	pub previous: Transform,
 }
 
-impl Position {
-	pub fn new(vec3: Vec3) -> Self {
+impl FixedTransform {
+	pub fn new(transform: Transform) -> Self {
 		return Self {
-			current: vec3,
-			current_global: vec3,
-			previous: vec3,
+			current: transform,
+			previous: transform,
 		};
 	}
 
-	pub fn x(&self) -> f32 {
-		self.current.x
+	pub fn translation(&self) -> Vec3 {
+		return self.current.translation;
 	}
-	pub fn y(&self) -> f32 {
-		self.current.y
-	}
-	pub fn z(&self) -> f32 {
-		self.current.z
-	}
-	pub fn global_x(&self) -> f32 {
-		self.current_global.x
-	}
-	pub fn global_y(&self) -> f32 {
-		self.current_global.y
-	}
-	pub fn global_z(&self) -> f32 {
-		self.current_global.z
+	pub fn translation_mut(&mut self) -> &mut Vec3 {
+		return &mut self.current.translation;
 	}
 
-	pub fn set_x(&mut self, val: f32) {
-		self.current.x = val;
+	pub fn scale(&self) -> Vec3 {
+		return self.current.scale;
 	}
-	pub fn set_y(&mut self, val: f32) {
-		self.current.y = val;
+	pub fn scale_mut(&mut self) -> &mut Vec3 {
+		return &mut self.current.scale;
 	}
-	pub fn set_z(&mut self, val: f32) {
-		self.current.z = val;
+
+	pub fn rotation(&self) -> Quat {
+		return self.current.rotation;
 	}
-	pub fn set_global_x(&mut self, val: f32) {
-		self.current_global.x = val;
+	pub fn rotation_mut(&mut self) -> &mut Quat {
+		return &mut self.current.rotation;
 	}
-	pub fn set_global_y(&mut self, val: f32) {
-		self.current_global.y = val;
-	}
-	pub fn set_global_z(&mut self, val: f32) {
-		self.current_global.z = val;
+	pub fn rotate(&mut self, quat: Quat) {
+		self.current.rotate(quat);
 	}
 }
 
@@ -65,43 +54,99 @@ pub struct PositionPlugin;
 
 impl Plugin for PositionPlugin {
 	fn build(&self, app: &mut App) {
-		app.add_systems(FixedPreUpdate, advance_position_history);
-		app.add_systems(Update, position_interpolation);
 		app.add_systems(
-			PostUpdate,
-			global_position_interpolation.after(TransformSystems::Propagate),
+			FixedPreUpdate,
+			FixedTransformSystems::advance_transform_history,
 		);
+		app.add_systems(Update, FixedTransformSystems::transform_interpolation);
 	}
 }
 
-/// makes the previous position the current position during FixedPreUpdate.
-pub fn advance_position_history(query: Query<&mut Position>) {
-	for mut position in query {
-		position.previous = position.current;
-	}
-}
-
-/// interpolates translation every real frame for smooth movement in Update
-pub fn position_interpolation(
-	fixed_time: Res<Time<Fixed>>,
-	mut query: Query<(&mut Transform, &mut Position)>,
-) {
-	let alpha = fixed_time.overstep_fraction();
-
-	for (mut transform, position) in &mut query {
-		// lerp between the previous and current fixed ticks
-		let interpolated = position.previous.lerp(position.current, alpha);
-
-		// apply to the actual visual transform
-		transform.translation = interpolated;
-	}
-}
-
-pub fn global_position_interpolation(mut query: Query<(Option<&GlobalTransform>, &mut Position)>) {
-	for (g_transform_opt, mut position) in &mut query {
-		if let Some(g_transform) = g_transform_opt {
-			position.current_global = g_transform.translation();
+pub struct FixedTransformSystems;
+impl FixedTransformSystems {
+	/// makes the previous position the current position during FixedPreUpdate.
+	pub fn advance_transform_history(query: Query<&mut FixedTransform>) {
+		for mut transform in query {
+			transform.previous = transform.current;
 		}
+	}
+
+	/// interpolates translation every real frame for smooth movement in Update
+	pub fn transform_interpolation(
+		fixed_time: Res<Time<Fixed>>,
+		mut query: Query<(&FixedTransform, &mut Transform)>,
+	) {
+		let alpha = fixed_time.overstep_fraction();
+
+		for (fixed_transform, mut transform) in &mut query {
+			// lerp between the previous and current fixed ticks
+			let interpolated_pos = fixed_transform
+				.previous
+				.translation
+				.lerp(fixed_transform.current.translation, alpha);
+
+			let interpolated_scale = fixed_transform
+				.previous
+				.scale
+				.lerp(fixed_transform.current.scale, alpha);
+
+			let interpolated_rotation = fixed_transform
+				.previous
+				.rotation
+				.lerp(fixed_transform.current.rotation, alpha);
+
+			// apply to the actual visual transform
+			transform.translation = interpolated_pos;
+			transform.scale = interpolated_scale;
+			transform.rotation = interpolated_rotation;
+		}
+	}
+}
+
+#[derive(Bundle)]
+pub struct FixedTransformBundle {
+	pub transform: Transform,
+	pub fixed_transform: FixedTransform,
+}
+
+impl From<Transform> for FixedTransformBundle {
+	fn from(transform: Transform) -> Self {
+		return Self {
+			fixed_transform: FixedTransform::new(transform),
+			transform,
+		};
+	}
+}
+
+pub trait IntoFixedTransform {
+	fn into_fixed(self) -> FixedTransform;
+}
+
+impl IntoFixedTransform for Transform {
+	/// turn a `Transform` into a `FixedTransform`, for interpolation
+	fn into_fixed(self) -> FixedTransform {
+		return FixedTransform {
+			current: self,
+			previous: self,
+		};
+	}
+}
+
+pub trait IntoFixedTransformBundle {
+	fn into_fixed_bundle(self) -> FixedTransformBundle;
+}
+
+impl IntoFixedTransformBundle for Transform {
+	/// turn a `Transform` into a `FixedTransformBundle`, for interpolation
+	/// differs from `IntoFixedTransform` by including a `Transform` for entity initialization
+	fn into_fixed_bundle(self) -> FixedTransformBundle {
+		return FixedTransformBundle {
+			transform: self,
+			fixed_transform: FixedTransform {
+				current: self,
+				previous: self,
+			},
+		};
 	}
 }
 
