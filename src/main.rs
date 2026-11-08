@@ -1,6 +1,7 @@
 mod jake_events;
 mod movable_helpers;
 mod trans_window;
+mod tray_icon;
 
 use bevy::prelude::*;
 use bevy::window::{ExitCondition, Monitor, OnMonitor, PrimaryWindow};
