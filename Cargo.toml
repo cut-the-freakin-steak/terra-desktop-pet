@@ -18,10 +18,12 @@ icons = ["assets/jAkE_app_icon.png"]
 [dependencies]
 bevy = "0.20.1"
 bevy_embedded_assets = "0.17.0"
-rand = "0.10.3"
 
-image = "0.25.10"
-tray-icon = "0.26.1"
+rand = "*"
+tray-icon = { version = "0.26.1", features = ["ksni"] }
+
+image = "*"
+winit = "*"
 
 log = { version = "0.4.34", features = ["max_level_debug", "release_max_level_warn"] }
 

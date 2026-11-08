@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-// use bevy::window::PrimaryWindow;
 
 use crate::{DirX, DirY, Direction, FixedTransform, UsingMonitor};
 use crate::{JAKE_WIDTH_ISH, Jake, JakeState};

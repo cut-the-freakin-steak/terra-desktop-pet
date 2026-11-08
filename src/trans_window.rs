@@ -16,6 +16,9 @@ struct TWindowConfig {
 	pub name: Option<String>,
 }
 
+#[derive(Resource)]
+pub struct WindowRecreated;
+
 impl Plugin for TransparentWindow {
 	fn build(&self, app: &mut App) {
 		assert!(
@@ -145,6 +148,7 @@ fn reopen_window(
 	));
 
 	state.reopen_requested = false;
+	commands.insert_resource(WindowRecreated);
 
 	info!("successfully made window transparent")
 }

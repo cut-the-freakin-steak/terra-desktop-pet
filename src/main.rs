@@ -5,12 +5,16 @@ mod tray_icon;
 
 use bevy::prelude::*;
 use bevy::window::{ExitCondition, Monitor, OnMonitor, PrimaryWindow};
+use bevy::winit::WinitWindows;
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 
 use trans_window::TransparentWindow;
 
 use jake_events::*;
 use movable_helpers::*;
+use tray_icon::*;
+
+use crate::trans_window::WindowRecreated;
 
 const JAKE_WIDTH_ISH: f32 = 65.0;
 
@@ -36,6 +40,7 @@ fn main() -> AppExit {
 
 	return App::new()
 		.insert_resource(ClearColor(Color::NONE))
+		.init_non_send::<WinitWindows>()
 		.add_plugins((
 			EmbeddedAssetPlugin::default(),
 			DefaultPlugins
@@ -50,6 +55,8 @@ fn main() -> AppExit {
 		.init_state::<AppState>()
 		.init_state::<JakeState>()
 		.add_systems(Update, setup_game.run_if(in_state(AppState::Setup))) // technically a Setup schedule, but whatever
+		.add_systems(Startup, setup_tray)
+		.add_systems(Update, set_window_icon)
 		.add_systems(
 			FixedUpdate,
 			(
@@ -59,6 +66,7 @@ fn main() -> AppExit {
 			)
 				.run_if(in_state(AppState::Elsewhere)),
 		)
+		.add_systems(Update, handle_tray_events)
 		.run();
 }
 
@@ -151,4 +159,41 @@ fn setup_game(
 
 	next_app_state.set(AppState::Elsewhere);
 	next_jake_state.set(JakeState::Intro);
+}
+
+#[derive(Resource)]
+struct WindowIconSet;
+
+// probably entirely unnecessary because its a borderless frameless window, but whatever lmao
+fn set_window_icon(
+	mut commands: Commands,
+	windows: NonSend<WinitWindows>,
+	window_recreated: Option<Res<WindowRecreated>>,
+	icon_set: Option<Res<WindowIconSet>>,
+) {
+	if icon_set.is_some() {
+		return;
+	}
+
+	if window_recreated.is_none() {
+		return;
+	}
+
+	let (icon_rgba, icon_width, icon_height) = {
+		let png = include_bytes!("../assets/jAkE_app_icon.png");
+		let image = image::load_from_memory(png)
+			.expect("failed to open icon path")
+			.into_rgba8();
+
+		let (width, height) = image.dimensions();
+		let rgba = image.into_raw();
+		(rgba, width, height)
+	};
+	let icon = winit::window::Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap();
+
+	for window in windows.windows.values() {
+		window.set_window_icon(Some(icon.clone()));
+	}
+
+	commands.insert_resource(WindowIconSet);
 }
