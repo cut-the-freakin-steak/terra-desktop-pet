@@ -10,6 +10,7 @@ pub struct JakeIntroArc {
 	pub peak_height: f32,
 	pub duration: f32,
 	pub elapsed: f32,
+	pub magic_rotation_number: f32,
 }
 
 #[derive(Component, Clone, Copy)]
@@ -46,8 +47,9 @@ pub fn jake_intro(
 
 	*translation = current;
 
-	const MAGIC_NUMBER: f32 = -12.40; // genuinely no rationale behind this number. pure trial and error.
-	f_transform.rotate(Quat::from_rotation_z(MAGIC_NUMBER * time.delta_secs()));
+	f_transform.rotate(Quat::from_rotation_z(
+		intro_arc.magic_rotation_number * time.delta_secs(),
+	));
 
 	// finishes animation
 	if t >= 1.0 {
@@ -91,49 +93,71 @@ pub fn jake_squash_n_stretch(
 	}
 }
 
+#[derive(Resource, Clone, Copy, Default)]
+pub enum JakeEvents {
+	None,
+	#[default]
+	Move,
+}
+
 pub fn jake_events(
 	mut jake: Single<(&Jake, &mut FixedTransform, &GlobalTransform, &mut Direction)>,
 	monitor: Res<UsingMonitor>,
 	time: Res<Time<Fixed>>,
+	mut event_timer: Local<Option<Timer>>,
+	mut jake_events: ResMut<JakeEvents>,
 ) {
-	// this is for future random events that jAkE can partake in
-	match rand::random_range(0..100) {
-		_ => {
-			let (jake, f_transform, g_transform, direction) = &mut *jake;
-			let g_position = g_transform.translation();
-			let monitor = &monitor.0;
+	let event_timer =
+		event_timer.get_or_insert_with(|| Timer::from_seconds(1.0, TimerMode::Repeating));
 
-			let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
-			let half_monitor_height = (monitor.physical_height as f64 / monitor.scale_factor) / 2.0;
+	let (jake, f_transform, g_transform, direction) = &mut *jake;
+	let g_position = g_transform.translation();
 
-			// right side of monitor
-			if half_monitor_width <= (g_position.x + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
-				direction.0 = DirX::Left;
-			}
-			// left side of monitor
-			else if -half_monitor_width
-				>= (g_position.x - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
-			{
-				direction.0 = DirX::Right;
-			}
-			// top of monitor
-			if half_monitor_height <= (g_position.y + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
-				direction.1 = DirY::Down;
-			}
-			// bottom of monitor
-			else if -half_monitor_height
-				>= (g_position.y - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64
-			{
-				direction.1 = DirY::Up;
-			}
+	// bounds checks
+	let monitor = &monitor.0;
+	let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
+	let half_monitor_height = (monitor.physical_height as f64 / monitor.scale_factor) / 2.0;
 
-			match direction.0 {
-				DirX::Left => f_transform.rotate(Quat::from_rotation_z(0.05)),
-				DirX::Right => f_transform.rotate(Quat::from_rotation_z(-0.05)),
-			}
-
-			const SPEED: f32 = 250.0;
-			*f_transform.translation_mut() += direction.as_vec3() * SPEED * time.delta_secs();
-		}
+	// right side of monitor
+	if half_monitor_width <= (g_position.x + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
+		direction.0 = DirX::Left;
 	}
+	// left side of monitor
+	else if -half_monitor_width >= (g_position.x - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
+		direction.0 = DirX::Right;
+	}
+	// top of monitor
+	if half_monitor_height <= (g_position.y + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
+		direction.1 = DirY::Down;
+	}
+	// bottom of monitor
+	else if -half_monitor_height >= (g_position.y - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
+		direction.1 = DirY::Up;
+	}
+
+	match *jake_events {
+		JakeEvents::None => {}
+		JakeEvents::Move => jake_move(f_transform, direction, &time),
+	};
+
+	// makes event stuff run every second
+	if !event_timer.tick(time.delta()).just_finished() {
+		return;
+	}
+
+	// random events that jAkE can partake in
+	match rand::random_range(0.0..1.0) {
+		0.0..0.1 => *jake_events = JakeEvents::Move,
+		_ => *jake_events = JakeEvents::None,
+	}
+}
+
+fn jake_move(f_transform: &mut FixedTransform, direction: &mut Direction, time: &Res<Time<Fixed>>) {
+	match direction.0 {
+		DirX::Left => f_transform.rotate(Quat::from_rotation_z(0.05)),
+		DirX::Right => f_transform.rotate(Quat::from_rotation_z(-0.05)),
+	}
+
+	const SPEED: f32 = 250.0;
+	*f_transform.translation_mut() += direction.as_vec3() * SPEED * time.delta_secs();
 }

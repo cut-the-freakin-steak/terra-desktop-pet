@@ -41,6 +41,7 @@ fn main() -> AppExit {
 	return App::new()
 		.insert_resource(ClearColor(Color::NONE))
 		.init_non_send::<WinitWindows>()
+		.init_resource::<JakeEvents>()
 		.add_plugins((
 			EmbeddedAssetPlugin::default(),
 			DefaultPlugins
@@ -116,6 +117,12 @@ fn setup_game(
 
 	// cookin up sum bs
 	let jake_starting_pos_x = -half_monitor_width as f32 - JAKE_WIDTH_ISH - 25.0;
+	let magic_number = if rand::random_bool(0.90) {
+		-12.40 // genuinely no rationale behind this number. pure trial and error.
+	}
+	else {
+		-112.40 // lmao.
+	};
 
 	commands.spawn(Camera2d);
 	commands
@@ -127,6 +134,7 @@ fn setup_game(
 				duration: 1.5,
 				peak_height: 250.0,
 				elapsed: 0.0,
+				magic_rotation_number: magic_number,
 			},
 			JakeSquashNStretch {
 				duration: 1.0,
