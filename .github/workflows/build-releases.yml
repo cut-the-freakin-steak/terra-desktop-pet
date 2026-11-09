@@ -105,6 +105,7 @@ jobs:
             cp "target/${{ matrix.target }}/release/${{ env.APP_NAME }}.exe" artifact/
           else
             cp "target/${{ matrix.target }}/release/${{ env.APP_NAME }}" artifact/
+            chmod +x artifact/${{ env.APP_NAME }}
           fi
 
       - name: Upload Build Artifacts
