@@ -135,21 +135,24 @@ pub fn jake_events(
 		direction.1 = DirY::Up;
 	}
 
+	// makes event stuff run every second
+	let mut do_event = true;
+	if !event_timer.tick(time.delta()).just_finished() {
+		do_event = false;
+	}
+
+	// random events that jAkE can partake in
+	if do_event {
+		match rand::random_range(0.0..1.0) {
+			0.0..0.5 => *jake_events = JakeEvents::Move,
+			_ => *jake_events = JakeEvents::None,
+		}
+	}
+
 	match *jake_events {
 		JakeEvents::None => {}
 		JakeEvents::Move => jake_move(f_transform, direction, &time),
 	};
-
-	// makes event stuff run every second
-	if !event_timer.tick(time.delta()).just_finished() {
-		return;
-	}
-
-	// random events that jAkE can partake in
-	match rand::random_range(0.0..1.0) {
-		0.0..0.1 => *jake_events = JakeEvents::Move,
-		_ => *jake_events = JakeEvents::None,
-	}
 }
 
 fn jake_move(f_transform: &mut FixedTransform, direction: &mut Direction, time: &Res<Time<Fixed>>) {
