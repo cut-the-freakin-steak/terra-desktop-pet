@@ -42,6 +42,7 @@ fn main() -> AppExit {
 		.insert_resource(ClearColor(Color::NONE))
 		.init_non_send::<WinitWindows>()
 		.init_resource::<JakeEvents>()
+		.insert_resource(LastScreenBounce(Direction::default()))
 		.add_plugins((
 			EmbeddedAssetPlugin::default(),
 			DefaultPlugins
@@ -146,7 +147,7 @@ fn setup_game(
 				.into_fixed_bundle(),
 			GlobalTransform::default(),
 			Visibility::default(),
-			Direction(DirX::Right, DirY::Up),
+			Direction::new(DirX::Right, DirY::Up),
 		))
 		.with_children(|parent| {
 			parent.spawn((

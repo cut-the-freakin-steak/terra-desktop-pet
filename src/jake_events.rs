@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use bevy::prelude::*;
 
 use crate::{DirX, DirY, Direction, FixedTransform, UsingMonitor};
@@ -93,11 +95,16 @@ pub fn jake_squash_n_stretch(
 	}
 }
 
+/// shows which border of the screen jAkE last bounced on
+#[derive(Resource, Clone, Copy)]
+pub struct LastScreenBounce(pub Direction);
+
 #[derive(Resource, Clone, Copy, Default)]
 pub enum JakeEvents {
 	None,
 	#[default]
 	Move,
+	Vibrate,
 }
 
 pub fn jake_events(
@@ -106,6 +113,7 @@ pub fn jake_events(
 	time: Res<Time<Fixed>>,
 	mut event_timer: Local<Option<Timer>>,
 	mut jake_events: ResMut<JakeEvents>,
+	mut last_bounce: ResMut<LastScreenBounce>,
 ) {
 	let event_timer =
 		event_timer.get_or_insert_with(|| Timer::from_seconds(1.0, TimerMode::Repeating));
@@ -121,18 +129,28 @@ pub fn jake_events(
 	// right side of monitor
 	if half_monitor_width <= (g_position.x + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
 		direction.0 = DirX::Left;
+		last_bounce.0.0 = DirX::Right;
 	}
 	// left side of monitor
 	else if -half_monitor_width >= (g_position.x - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
 		direction.0 = DirX::Right;
+		last_bounce.0.0 = DirX::Left;
+	}
+	else {
+		last_bounce.0.0 = DirX::None;
 	}
 	// top of monitor
 	if half_monitor_height <= (g_position.y + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
 		direction.1 = DirY::Down;
+		last_bounce.0.1 = DirY::Up;
 	}
 	// bottom of monitor
 	else if -half_monitor_height >= (g_position.y - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
 		direction.1 = DirY::Up;
+		last_bounce.0.1 = DirY::Down;
+	}
+	else {
+		last_bounce.0.1 = DirY::None;
 	}
 
 	// makes event stuff run every second
@@ -144,23 +162,93 @@ pub fn jake_events(
 	// random events that jAkE can partake in
 	if do_event {
 		match rand::random_range(0.0..1.0) {
-			0.0..0.5 => *jake_events = JakeEvents::Move,
+			0.0..0.25 => *jake_events = JakeEvents::Move,
+			0.25..0.50 => *jake_events = JakeEvents::Vibrate,
 			_ => *jake_events = JakeEvents::None,
 		}
 	}
 
 	match *jake_events {
 		JakeEvents::None => {}
-		JakeEvents::Move => jake_move(f_transform, direction, &time),
+		JakeEvents::Move => jake_move(
+			f_transform,
+			direction,
+			&time,
+			&last_bounce,
+			event_timer,
+			1100.0..3100.0,
+		),
+		JakeEvents::Vibrate => {
+			jake_vibrate(f_transform, direction, &time, &last_bounce, event_timer)
+		}
 	};
 }
 
-fn jake_move(f_transform: &mut FixedTransform, direction: &mut Direction, time: &Res<Time<Fixed>>) {
-	match direction.0 {
-		DirX::Left => f_transform.rotate(Quat::from_rotation_z(0.05)),
-		DirX::Right => f_transform.rotate(Quat::from_rotation_z(-0.05)),
+fn jake_move(
+	f_transform: &mut FixedTransform,
+	direction: &Direction,
+	time: &Res<Time<Fixed>>,
+	last_bounce: &ResMut<LastScreenBounce>,
+	event_timer: &Timer,
+	speed_range: Range<f32>,
+) {
+	if event_timer.just_finished() {}
+	let mut desired_dir_x = if rand::random_bool(0.5) {
+		DirX::Left
+	}
+	else {
+		DirX::Right
+	};
+
+	let mut desired_dir_y = if rand::random_bool(0.5) {
+		DirY::Up
+	}
+	else {
+		DirY::Down
+	};
+
+	if last_bounce.0.0 == desired_dir_x {
+		if rand::random_bool(0.25) {
+			desired_dir_x = desired_dir_x.opposite();
+		}
+		else {
+			desired_dir_x = DirX::None;
+		}
 	}
 
-	const SPEED: f32 = 250.0;
-	*f_transform.translation_mut() += direction.as_vec3() * SPEED * time.delta_secs();
+	if last_bounce.0.1 == desired_dir_y {
+		if rand::random_bool(0.25) {
+			desired_dir_y = desired_dir_y.opposite();
+		}
+		else {
+			desired_dir_y = DirY::None;
+		}
+	}
+
+	let dir = Direction::new(desired_dir_x, desired_dir_y);
+	let speed_x = rand::random_range(speed_range.clone());
+	let speed_y = rand::random_range(speed_range);
+	let difference = Vec3::new(
+		dir.0 as i8 as f32 * speed_x,
+		dir.1 as i8 as f32 * speed_y,
+		0.0,
+	);
+	*f_transform.translation_mut() += difference * time.delta_secs();
+}
+
+fn jake_vibrate(
+	f_transform: &mut FixedTransform,
+	direction: &Direction,
+	time: &Res<Time<Fixed>>,
+	last_bounce: &ResMut<LastScreenBounce>,
+	event_timer: &Timer,
+) {
+	jake_move(
+		f_transform,
+		direction,
+		time,
+		last_bounce,
+		event_timer,
+		100.0..300.0,
+	)
 }

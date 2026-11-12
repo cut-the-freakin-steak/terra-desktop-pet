@@ -10,7 +10,7 @@ use bevy::prelude::*;
 /// ```rs
 /// Transform::from_xyz(x, y, z).into_fixed_bundle();
 /// ```
-#[derive(Component, Clone, Copy, Default)]
+#[derive(Component, Clone, Copy, Default, PartialEq)]
 pub struct FixedTransform {
 	pub current: Transform,
 	pub previous: Transform,
@@ -150,29 +150,72 @@ impl IntoFixedTransformBundle for Transform {
 	}
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum DirX {
 	Left = -1,
 	Right = 1,
+	#[default]
+	None = 0,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum DirY {
 	Down = -1,
 	Up = 1,
+	#[default]
+	None = 0,
 }
 
 /// a simple component to demonstrate direction in a visible or movable thing
-#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Direction(pub DirX, pub DirY);
 
 #[allow(dead_code)]
 impl Direction {
+	pub fn new(x: DirX, y: DirY) -> Self {
+		return Direction(x, y);
+	}
+
 	pub fn as_vec2(&self) -> Vec2 {
 		return Vec2::new(self.0 as i32 as f32, self.1 as i32 as f32);
 	}
 
 	pub fn as_vec3(&self) -> Vec3 {
 		return Vec3::new(self.0 as i32 as f32, self.1 as i32 as f32, 0.0);
+	}
+
+	/// returns the opposite of both x and y directions in a `Direction`
+	pub fn opposite(&self) -> Self {
+		return Self(self.0.opposite(), self.1.opposite());
+	}
+
+	/// returns the opposite of the x direction in a `Direction`
+	pub fn opposite_x(&self) -> Self {
+		return Self(self.0.opposite(), self.1);
+	}
+
+	/// returns the opposite of the y direction in a `Direction`
+	pub fn opposite_y(&self) -> Self {
+		return Self(self.0, self.1.opposite());
+	}
+}
+
+impl DirX {
+	pub fn opposite(&self) -> Self {
+		match self {
+			Self::Left => return Self::Right,
+			Self::Right => return Self::Left,
+			Self::None => return Self::None,
+		}
+	}
+}
+
+impl DirY {
+	pub fn opposite(&self) -> Self {
+		match self {
+			Self::Up => return Self::Down,
+			Self::Down => return Self::Up,
+			Self::None => return Self::None,
+		}
 	}
 }
