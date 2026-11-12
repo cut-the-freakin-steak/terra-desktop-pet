@@ -108,7 +108,12 @@ pub enum JakeEvents {
 }
 
 pub fn jake_events(
-	mut jake: Single<(&Jake, &mut FixedTransform, &GlobalTransform, &mut Direction)>,
+	mut jake: Single<(
+		&mut Jake,
+		&mut FixedTransform,
+		&GlobalTransform,
+		&mut Direction,
+	)>,
 	monitor: Res<UsingMonitor>,
 	time: Res<Time<Fixed>>,
 	mut event_timer: Local<Option<Timer>>,
@@ -162,8 +167,8 @@ pub fn jake_events(
 	// random events that jAkE can partake in
 	if do_event {
 		match rand::random_range(0.0..1.0) {
-			0.0..0.25 => *jake_events = JakeEvents::Move,
-			0.25..0.50 => *jake_events = JakeEvents::Vibrate,
+			0.0..0.33 => *jake_events = JakeEvents::Move,
+			0.33..0.66 => *jake_events = JakeEvents::Vibrate,
 			_ => *jake_events = JakeEvents::None,
 		}
 	}
@@ -171,6 +176,7 @@ pub fn jake_events(
 	match *jake_events {
 		JakeEvents::None => {}
 		JakeEvents::Move => jake_move(
+			jake,
 			f_transform,
 			direction,
 			&time,
@@ -178,15 +184,21 @@ pub fn jake_events(
 			event_timer,
 			1100.0..3100.0,
 		),
-		JakeEvents::Vibrate => {
-			jake_vibrate(f_transform, direction, &time, &last_bounce, event_timer)
-		}
+		JakeEvents::Vibrate => jake_vibrate(
+			jake,
+			f_transform,
+			direction,
+			&time,
+			&last_bounce,
+			event_timer,
+		),
 	};
 }
 
 fn jake_move(
+	jake: &mut Jake,
 	f_transform: &mut FixedTransform,
-	direction: &Direction,
+	direction: &mut Direction,
 	time: &Res<Time<Fixed>>,
 	last_bounce: &ResMut<LastScreenBounce>,
 	event_timer: &Timer,
@@ -237,13 +249,16 @@ fn jake_move(
 }
 
 fn jake_vibrate(
+	jake: &mut Jake,
 	f_transform: &mut FixedTransform,
-	direction: &Direction,
+	direction: &mut Direction,
 	time: &Res<Time<Fixed>>,
 	last_bounce: &ResMut<LastScreenBounce>,
 	event_timer: &Timer,
 ) {
+	// just a liiitle movement is fine :3
 	jake_move(
+		jake,
 		f_transform,
 		direction,
 		time,
