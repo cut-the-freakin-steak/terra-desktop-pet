@@ -7,7 +7,7 @@ this should work on most major operating systems (windows, mac, linux with kde; 
 ## credits
 
 - i, [cut_the_freakin_steak](https://codeberg.org/cut-the-freakin-steak), did all of the programming, technical decisions, and half of the ideas.
-- my wonderful friend [chinby](https://github.com/Chinby-art) did the _other_ half of the ideas, and did all of the art for jAkE, props to her
+- my wonderful friend [chinby](https://github.com/Chinby-art) did the _other_ half of the ideas, and did all of the art for jAkE (she also created him), props to her
 - my other great friend [twigin'around](https://github.com/TwiginAround156) is the voice of the titular jAkE, props to him
 
 ## troubleshooting
