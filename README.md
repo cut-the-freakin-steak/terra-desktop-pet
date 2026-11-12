@@ -4,6 +4,12 @@
 
 this should work on most major operating systems (windows, mac, linux with kde; GNOME; any non-tiling wm that uses wayland or x11), but there are some exceptions and complications on certain OS' and window managers on linux. look below for troubleshooting help. :3
 
+## credits
+
+- i, [cut_the_freakin_steak](https://codeberg.org/cut-the-freakin-steak), did all of the programming, technical decisions, and half of the ideas.
+- my wonderful friend [chinby](https://github.com/Chinby-art) did the _other_ half of the ideas, and did all of the art for jAkE, props to her
+- my other great friend [twigin'around](https://github.com/TwiginAround156) is the voice of the titular jAkE, props to him
+
 ## troubleshooting
 
 ### windows
@@ -14,7 +20,7 @@ windows defender will try to nag you about this. i _promise_ you it's not a viru
 
 #### window transparency
 
-there is a currently open [bevy issue](https://github.com/bevyengine/bevy/issues/7544) relating to windows and window transparency, so most bugs that happen that are about this are out of my control.
+there is a [currently open bevy issue](https://github.com/bevyengine/bevy/issues/7544) relating to windows and window transparency, so most bugs that happen that are about this are out of my control.
 
 the windows operating system has trouble running transparent windows. y'know, transparent. like most windows are.
 _funny._
