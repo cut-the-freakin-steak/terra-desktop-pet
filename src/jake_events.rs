@@ -119,6 +119,7 @@ pub fn jake_events(
 	mut event_timer: Local<Option<Timer>>,
 	mut jake_events: ResMut<JakeEvents>,
 	mut last_bounce: ResMut<LastScreenBounce>,
+	mut jake_speed: Local<f32>,
 ) {
 	let event_timer =
 		event_timer.get_or_insert_with(|| Timer::from_seconds(1.0, TimerMode::Repeating));
@@ -167,7 +168,9 @@ pub fn jake_events(
 	// random events that jAkE can partake in
 	if do_event {
 		match rand::random_range(0.0..1.0) {
-			0.0..0.33 => *jake_events = JakeEvents::Move,
+			0.0..0.33 => {
+				jake_speed = *jake_events = JakeEvents::Move;
+			}
 			0.33..0.66 => *jake_events = JakeEvents::Vibrate,
 			_ => *jake_events = JakeEvents::None,
 		}
