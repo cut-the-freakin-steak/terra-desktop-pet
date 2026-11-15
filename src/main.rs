@@ -4,6 +4,7 @@ mod trans_window;
 mod tray_icon;
 
 use bevy::prelude::*;
+use bevy::sprite::Anchor;
 use bevy::window::{ExitCondition, Monitor, OnMonitor, PrimaryWindow};
 use bevy::winit::WinitWindows;
 use bevy_embedded_assets::EmbeddedAssetPlugin;
@@ -84,6 +85,9 @@ pub struct Jake {
 	pub scale: f32,
 }
 
+#[derive(Component)]
+pub struct JakeNose;
+
 fn setup_game(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
@@ -156,7 +160,10 @@ fn setup_game(
 			));
 			parent.spawn((
 				jake_nose,
-				Transform::from_xyz(15.0, 4.0, 0.0).into_fixed_bundle(),
+				JakeNose,
+				// Transform::from_xyz(15.0, 4.0, 0.0).into_fixed_bundle(),
+				Transform::from_xyz(-25.0, 4.0, 0.0).into_fixed_bundle(),
+				Anchor::CENTER_LEFT,
 			));
 			parent.spawn((
 				jake_bush,

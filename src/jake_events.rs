@@ -3,7 +3,7 @@ use std::ops::Range;
 use bevy::prelude::*;
 
 use crate::{DirX, DirY, Direction, FixedTransform, UsingMonitor};
-use crate::{JAKE_WIDTH_ISH, Jake, JakeState};
+use crate::{JAKE_WIDTH_ISH, Jake, JakeNose, JakeState};
 
 #[derive(Component, Clone, Copy)]
 pub struct JakeIntroArc {
@@ -115,6 +115,10 @@ pub fn jake_events(
 		&mut Direction,
 		&Children,
 	)>,
+	sprites_and_transforms: Query<
+		(&mut Sprite, &mut FixedTransform, Option<&JakeNose>),
+		Without<Jake>,
+	>,
 	monitor: Res<UsingMonitor>,
 	time: Res<Time<Fixed>>,
 	mut event_timer: Local<Option<Timer>>,
@@ -169,11 +173,11 @@ pub fn jake_events(
 	// random events that jAkE can partake in
 	if do_event {
 		match rand::random_range(0.0..1.0) {
-			0.0..0.33 => {
-				*jake_speed = rand::random_range(1100.0..3100.0) as f32;
-				*jake_events = JakeEvents::Move;
-			}
-			0.33..0.66 => *jake_events = JakeEvents::Vibrate,
+			// 0.0..0.33 => {
+			// 	*jake_speed = rand::random_range(1100.0..3100.0) as f32;
+			// 	*jake_events = JakeEvents::Move;
+			// }
+			// 0.33..0.66 => *jake_events = JakeEvents::Vibrate,
 			_ => *jake_events = JakeEvents::None,
 		}
 	}
@@ -182,6 +186,7 @@ pub fn jake_events(
 		JakeEvents::None => {}
 		JakeEvents::Move => jake_move(
 			jake_children,
+			sprites_and_transforms,
 			f_transform,
 			direction,
 			&time,
@@ -191,6 +196,7 @@ pub fn jake_events(
 		),
 		JakeEvents::Vibrate => jake_vibrate(
 			jake_children,
+			sprites_and_transforms,
 			f_transform,
 			direction,
 			&time,
@@ -202,6 +208,10 @@ pub fn jake_events(
 
 fn jake_move(
 	jake_children: &Children,
+	mut sprites_and_transforms: Query<
+		(&mut Sprite, &mut FixedTransform, Option<&JakeNose>),
+		Without<Jake>,
+	>,
 	f_transform: &mut FixedTransform,
 	direction: &mut Direction,
 	time: &Res<Time<Fixed>>,
@@ -244,15 +254,28 @@ fn jake_move(
 
 	if desired_dir_x == DirX::Left {
 		for child in jake_children.iter() {
-			// let maybe_sprite =
-		}
-		for mut sprite in jake_sprites {
-			sprite.flip_x = true;
+			let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
+			else {
+				continue;
+			};
+
+			transform.scale_mut().x = -1.0;
+			if nose.is_some() {
+				*transform.translation_mut() = Vec3::new(21.0, 4.0, 0.0);
+			}
 		}
 	}
 	else {
-		for mut sprite in jake_sprites {
-			sprite.flip_x = false;
+		for child in jake_children.iter() {
+			let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
+			else {
+				continue;
+			};
+
+			transform.scale_mut().x = 1.0;
+			if nose.is_some() {
+				*transform.translation_mut() = Vec3::new(-25.0, 4.0, 0.0);
+			}
 		}
 	}
 
@@ -269,6 +292,10 @@ fn jake_move(
 
 fn jake_vibrate(
 	jake_children: &Children,
+	sprites_and_transforms: Query<
+		(&mut Sprite, &mut FixedTransform, Option<&JakeNose>),
+		Without<Jake>,
+	>,
 	f_transform: &mut FixedTransform,
 	direction: &mut Direction,
 	time: &Res<Time<Fixed>>,
@@ -278,6 +305,7 @@ fn jake_vibrate(
 	// just a liiitle movement is fine :3
 	jake_move(
 		jake_children,
+		sprites_and_transforms,
 		f_transform,
 		direction,
 		time,
