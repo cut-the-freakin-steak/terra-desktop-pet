@@ -173,11 +173,11 @@ pub fn jake_events(
 	// random events that jAkE can partake in
 	if do_event {
 		match rand::random_range(0.0..1.0) {
-			// 0.0..0.33 => {
-			// 	*jake_speed = rand::random_range(1100.0..3100.0) as f32;
-			// 	*jake_events = JakeEvents::Move;
-			// }
-			// 0.33..0.66 => *jake_events = JakeEvents::Vibrate,
+			0.0..0.33 => {
+				*jake_speed = rand::random_range(1100.0..3100.0) as f32;
+				*jake_events = JakeEvents::Move;
+			}
+			0.33..0.66 => *jake_events = JakeEvents::Vibrate,
 			_ => *jake_events = JakeEvents::None,
 		}
 	}
@@ -194,7 +194,8 @@ pub fn jake_events(
 			event_timer,
 			1100.0..3100.0,
 		),
-		JakeEvents::Vibrate => jake_vibrate(
+		// just a liiitle movement is fine :3
+		JakeEvents::Vibrate => jake_move(
 			jake_children,
 			sprites_and_transforms,
 			f_transform,
@@ -202,6 +203,7 @@ pub fn jake_events(
 			&time,
 			&last_bounce,
 			event_timer,
+			100.0..300.0,
 		),
 	};
 }
@@ -288,29 +290,4 @@ fn jake_move(
 		0.0,
 	);
 	*f_transform.translation_mut() += difference * time.delta_secs();
-}
-
-fn jake_vibrate(
-	jake_children: &Children,
-	sprites_and_transforms: Query<
-		(&mut Sprite, &mut FixedTransform, Option<&JakeNose>),
-		Without<Jake>,
-	>,
-	f_transform: &mut FixedTransform,
-	direction: &mut Direction,
-	time: &Res<Time<Fixed>>,
-	last_bounce: &ResMut<LastScreenBounce>,
-	event_timer: &Timer,
-) {
-	// just a liiitle movement is fine :3
-	jake_move(
-		jake_children,
-		sprites_and_transforms,
-		f_transform,
-		direction,
-		time,
-		last_bounce,
-		event_timer,
-		100.0..300.0,
-	)
 }
