@@ -113,6 +113,7 @@ pub fn jake_events(
 		&mut FixedTransform,
 		&GlobalTransform,
 		&mut Direction,
+		&Children,
 	)>,
 	monitor: Res<UsingMonitor>,
 	time: Res<Time<Fixed>>,
@@ -124,7 +125,7 @@ pub fn jake_events(
 	let event_timer =
 		event_timer.get_or_insert_with(|| Timer::from_seconds(1.0, TimerMode::Repeating));
 
-	let (jake, f_transform, g_transform, direction) = &mut *jake;
+	let (jake, f_transform, g_transform, direction, jake_children) = &mut *jake;
 	let g_position = g_transform.translation();
 
 	// bounds checks
@@ -169,7 +170,8 @@ pub fn jake_events(
 	if do_event {
 		match rand::random_range(0.0..1.0) {
 			0.0..0.33 => {
-				jake_speed = *jake_events = JakeEvents::Move;
+				*jake_speed = rand::random_range(1100.0..3100.0) as f32;
+				*jake_events = JakeEvents::Move;
 			}
 			0.33..0.66 => *jake_events = JakeEvents::Vibrate,
 			_ => *jake_events = JakeEvents::None,
@@ -179,7 +181,7 @@ pub fn jake_events(
 	match *jake_events {
 		JakeEvents::None => {}
 		JakeEvents::Move => jake_move(
-			jake,
+			jake_children,
 			f_transform,
 			direction,
 			&time,
@@ -188,7 +190,7 @@ pub fn jake_events(
 			1100.0..3100.0,
 		),
 		JakeEvents::Vibrate => jake_vibrate(
-			jake,
+			jake_children,
 			f_transform,
 			direction,
 			&time,
@@ -199,7 +201,7 @@ pub fn jake_events(
 }
 
 fn jake_move(
-	jake: &mut Jake,
+	jake_children: &Children,
 	f_transform: &mut FixedTransform,
 	direction: &mut Direction,
 	time: &Res<Time<Fixed>>,
@@ -207,7 +209,7 @@ fn jake_move(
 	event_timer: &Timer,
 	speed_range: Range<f32>,
 ) {
-	if event_timer.just_finished() {}
+	// if event_timer.just_finished() {}
 	let mut desired_dir_x = if rand::random_bool(0.5) {
 		DirX::Left
 	}
@@ -240,6 +242,20 @@ fn jake_move(
 		}
 	}
 
+	if desired_dir_x == DirX::Left {
+		for child in jake_children.iter() {
+			// let maybe_sprite =
+		}
+		for mut sprite in jake_sprites {
+			sprite.flip_x = true;
+		}
+	}
+	else {
+		for mut sprite in jake_sprites {
+			sprite.flip_x = false;
+		}
+	}
+
 	let dir = Direction::new(desired_dir_x, desired_dir_y);
 	let speed_x = rand::random_range(speed_range.clone());
 	let speed_y = rand::random_range(speed_range);
@@ -252,7 +268,7 @@ fn jake_move(
 }
 
 fn jake_vibrate(
-	jake: &mut Jake,
+	jake_children: &Children,
 	f_transform: &mut FixedTransform,
 	direction: &mut Direction,
 	time: &Res<Time<Fixed>>,
@@ -261,7 +277,7 @@ fn jake_vibrate(
 ) {
 	// just a liiitle movement is fine :3
 	jake_move(
-		jake,
+		jake_children,
 		f_transform,
 		direction,
 		time,
