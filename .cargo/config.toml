@@ -1,7 +1,12 @@
 # this config requires nightly rust
 
+# frontend threads :3
+[build]
+rustflags = ["-Zunstable-options", "--jobs-frontend=8"]
+
 # cranelift is unstable, may want to change this
 [profile.dev]
+debug = "line-tables-only"
 codegen-backend = "cranelift"
 
 # crates compile with llvm still, cranelift is simply for debug speed
