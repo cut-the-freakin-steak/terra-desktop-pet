@@ -36,6 +36,8 @@ pub enum JakeState {
 }
 
 fn main() -> AppExit {
+	info!("bro???");
+
 	let transparent_window_plugin =
 		TransparentWindow::new("jaketop".to_string(), Some("jaketop".to_string()));
 
@@ -44,6 +46,7 @@ fn main() -> AppExit {
 		.init_non_send::<WinitWindows>()
 		.init_resource::<JakePhysicalEvents>()
 		.init_resource::<JakeSoundEvents>()
+		.init_resource::<JakeAltEvents>()
 		.insert_resource(LastScreenBounce(Direction::default()))
 		.insert_resource(PhysicalEventTimer(Timer::from_seconds(
 			2.0,
@@ -51,6 +54,10 @@ fn main() -> AppExit {
 		)))
 		.insert_resource(SoundEventTimer(Timer::from_seconds(
 			10.0,
+			TimerMode::Repeating,
+		)))
+		.insert_resource(AltEventTimer(Timer::from_seconds(
+			15.0,
 			TimerMode::Repeating,
 		)))
 		.add_plugins((
@@ -69,6 +76,7 @@ fn main() -> AppExit {
 		.add_systems(Update, setup_game.run_if(in_state(AppState::Setup))) // technically a Setup schedule, but whatever
 		.add_systems(Startup, setup_tray)
 		.add_systems(Update, set_window_icon)
+		// intro + events
 		.add_systems(
 			FixedUpdate,
 			(
@@ -78,6 +86,11 @@ fn main() -> AppExit {
 				jake_move.run_if(in_state(JakeState::Roaming)),
 			)
 				.run_if(in_state(AppState::Elsewhere)),
+		)
+		// alt events
+		.add_systems(
+			FixedUpdate,
+			jake_eyes_spin.run_if(in_state(JakeState::Roaming)),
 		)
 		.add_systems(Update, handle_tray_events)
 		.run();
@@ -96,7 +109,13 @@ pub struct Jake {
 }
 
 #[derive(Component)]
+pub struct JakeEyes;
+
+#[derive(Component)]
 pub struct JakeNose;
+
+#[derive(Component)]
+pub struct JakeBush;
 
 fn setup_game(
 	mut commands: Commands,
@@ -120,13 +139,16 @@ fn setup_game(
 
 	let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
 
-	let jake_eyes = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_eyes.png"));
-	let jake_nose = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_nose.png"));
-	let jake_bush = Sprite::from_image(asset_server.load("embedded://sprites/jAkE_bush.png"));
+	let jake_eyes_sprite =
+		Sprite::from_image(asset_server.load("embedded://sprites/jAkE_eyes.png"));
+	let jake_nose_sprite =
+		Sprite::from_image(asset_server.load("embedded://sprites/jAkE_nose.png"));
+	let jake_bush_sprite =
+		Sprite::from_image(asset_server.load("embedded://sprites/jAkE_bush.png"));
 	let jake = Jake {
-		eyes: jake_eyes.clone(),
-		nose: jake_nose.clone(),
-		bush: jake_bush.clone(),
+		eyes: jake_eyes_sprite.clone(),
+		nose: jake_nose_sprite.clone(),
+		bush: jake_bush_sprite.clone(),
 		scale: 2.0,
 	};
 
@@ -165,18 +187,19 @@ fn setup_game(
 		))
 		.with_children(|parent| {
 			parent.spawn((
-				jake_eyes,
-				Transform::from_xyz(-2.0, 13.0, 0.0).into_fixed_bundle(),
-			));
-			parent.spawn((
-				jake_nose,
 				JakeNose,
-				// Transform::from_xyz(15.0, 4.0, 0.0).into_fixed_bundle(),
-				Transform::from_xyz(-25.0, 4.0, 0.0).into_fixed_bundle(),
+				jake_nose_sprite,
+				Transform::from_xyz(-25.0, 4.0, 1.0).into_fixed_bundle(),
 				Anchor::CENTER_LEFT,
 			));
 			parent.spawn((
-				jake_bush,
+				JakeEyes,
+				jake_eyes_sprite,
+				Transform::from_xyz(-2.0, 13.0, 0.0).into_fixed_bundle(),
+			));
+			parent.spawn((
+				JakeBush,
+				jake_bush_sprite,
 				Transform::from_xyz(0.0, -20.0, 0.0).into_fixed_bundle(),
 			));
 		});
@@ -197,11 +220,7 @@ fn set_window_icon(
 	window_recreated: Option<Res<WindowRecreated>>,
 	icon_set: Option<Res<WindowIconSet>>,
 ) {
-	if icon_set.is_some() {
-		return;
-	}
-
-	if window_recreated.is_none() {
+	if icon_set.is_some() || window_recreated.is_none() {
 		return;
 	}
 

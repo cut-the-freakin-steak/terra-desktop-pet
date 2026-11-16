@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use bevy::prelude::*;
 
-use crate::{DirX, DirY, Direction, FixedTransform, UsingMonitor};
+use crate::{DirX, DirY, Direction, FixedTransform, JakeEyes, UsingMonitor};
 use crate::{JAKE_WIDTH_ISH, Jake, JakeNose, JakeState};
 
 #[derive(Component, Clone, Copy)]
@@ -111,6 +111,16 @@ pub enum JakePhysicalEvents {
 #[derive(Resource, Clone, PartialEq, Eq)]
 pub struct PhysicalEventTimer(pub Timer);
 
+#[derive(Resource, Clone, Copy, Default, PartialEq)]
+pub enum JakeAltEvents {
+	#[default]
+	None,
+	GlassesSpin,
+}
+
+#[derive(Resource, Clone, PartialEq, Eq)]
+pub struct AltEventTimer(pub Timer);
+
 #[derive(Resource, Clone, Copy, Default, PartialEq, Eq)]
 pub enum JakeSoundEvents {
 	None,
@@ -132,11 +142,14 @@ pub fn jake_events(
 	mut physical_event_timer: ResMut<PhysicalEventTimer>,
 	mut jake_sound_events: ResMut<JakeSoundEvents>,
 	mut sound_event_timer: ResMut<SoundEventTimer>,
+	mut jake_alt_events: ResMut<JakeAltEvents>,
+	mut alt_event_timer: ResMut<AltEventTimer>,
 ) {
 	let (jake, g_transform, direction) = &mut *jake;
 	let g_position = g_transform.translation();
 	let physical_event_timer = &mut physical_event_timer.0;
 	let sound_event_timer = &mut sound_event_timer.0;
+	let alt_event_timer = &mut alt_event_timer.0;
 
 	// bounds checks
 	let monitor = &monitor.0;
@@ -170,7 +183,7 @@ pub fn jake_events(
 		last_bounce.0.1 = DirY::None;
 	}
 
-	// makes physical event stuff run every second
+	// makes physical event stuff run every 2 seconds
 	let mut do_physical_event = true;
 	if !physical_event_timer.tick(time.delta()).just_finished() {
 		do_physical_event = false;
@@ -187,7 +200,7 @@ pub fn jake_events(
 		};
 	}
 
-	// makes sound event stuff run every second
+	// makes sound event stuff run every 10 seconds
 	let mut do_sound_event = true;
 	if !sound_event_timer.tick(time.delta()).just_finished() {
 		do_sound_event = false;
@@ -196,7 +209,7 @@ pub fn jake_events(
 	// random sound (thing that hear in ear) events that jAkE can partake in
 	if do_sound_event {
 		match rand::random_range(0.0..1.0) {
-			0.0..0.50 => *jake_sound_events = JakeSoundEvents::Greetings,
+			0.0..0.10 => *jake_sound_events = JakeSoundEvents::Greetings,
 			_ => *jake_sound_events = JakeSoundEvents::None,
 		};
 	}
@@ -212,16 +225,29 @@ pub fn jake_events(
 			*jake_sound_events = JakeSoundEvents::None;
 		}
 	}
+
+	// makes alt event stuff run every 15 seconds
+	let mut do_alt_event = true;
+	if !alt_event_timer.tick(time.delta()).just_finished() {
+		do_alt_event = false;
+	}
+
+	if do_alt_event {
+		match rand::random_range(0.0..1.0) {
+			0.0..0.70 => *jake_alt_events = JakeAltEvents::GlassesSpin,
+			_ => *jake_alt_events = JakeAltEvents::None,
+		}
+	}
 }
 
 pub fn jake_move(
+	mut jake: Single<(Entity, &mut FixedTransform), With<Jake>>,
 	jake_physical_events: Res<JakePhysicalEvents>,
-	jake_children_query: Query<&Children>,
+	children_query: Query<&Children>,
 	mut sprites_and_transforms: Query<
 		(&mut Sprite, &mut FixedTransform, Option<&JakeNose>),
 		Without<Jake>,
 	>,
-	mut f_transform: Single<&mut FixedTransform, With<Jake>>,
 	time: Res<Time<Fixed>>,
 	last_bounce: ResMut<LastScreenBounce>,
 	mut physical_event_timer: ResMut<PhysicalEventTimer>,
@@ -229,6 +255,8 @@ pub fn jake_move(
 	mut jake_desired_dir: Local<Direction>,
 ) {
 	let physical_event_timer = &mut physical_event_timer.0;
+	let (jake_entity, f_transform) = &mut *jake;
+
 	let tweakbob: bool;
 	let speed_range: Range<f32>;
 	match *jake_physical_events {
@@ -243,9 +271,6 @@ pub fn jake_move(
 		}
 		_ => return,
 	};
-
-	// let speed_range = speed_range.get_or_insert_with(|| 50.0..222.0);
-	// let tweak = tweak.get_or_insert_with(|| false);
 
 	if physical_event_timer.just_finished() && !tweakbob {
 		*jake_speed_xy = (
@@ -269,7 +294,7 @@ pub fn jake_move(
 
 		*jake_desired_dir = Direction::new(desired_dir_x, desired_dir_y);
 	}
-	// just do what we did above without the timer's approval
+	// just do what we did above but without the timer's approval
 	else if tweakbob {
 		*jake_speed_xy = (
 			rand::random_range(speed_range.clone()),
@@ -303,7 +328,7 @@ pub fn jake_move(
 
 	// flipping logic, cause just doing flip_x on the sprites dont work
 	if jake_desired_dir.0 == DirX::Left {
-		for jake_children in jake_children_query {
+		if let Ok(jake_children) = children_query.get(*jake_entity) {
 			for child in jake_children.iter() {
 				let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
 				else {
@@ -320,7 +345,7 @@ pub fn jake_move(
 		}
 	}
 	else {
-		for jake_children in jake_children_query {
+		if let Ok(jake_children) = children_query.get(*jake_entity) {
 			for child in jake_children.iter() {
 				let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
 				else {
@@ -344,4 +369,29 @@ pub fn jake_move(
 		0.0,
 	);
 	*f_transform.translation_mut() += difference * time.delta_secs();
+}
+
+pub fn jake_eyes_spin(
+	mut jake_alt_events: ResMut<JakeAltEvents>,
+	mut f_transform: Single<&mut FixedTransform, With<JakeEyes>>,
+	mut spin_timer_opt: Local<Option<Timer>>,
+	time: Res<Time<Fixed>>,
+) {
+	use JakeAltEvents as AltPhysEvents;
+	match *jake_alt_events {
+		AltPhysEvents::GlassesSpin => {}
+		_ => return,
+	};
+
+	let spin_timer = spin_timer_opt
+		.get_or_insert_with(|| Timer::from_seconds(std::f32::consts::PI, TimerMode::Once));
+
+	if spin_timer.tick(time.delta()).just_finished() {
+		*f_transform.rotation_mut() = Quat::IDENTITY;
+		spin_timer.reset();
+		*jake_alt_events = JakeAltEvents::None;
+	}
+	else {
+		f_transform.rotate(Quat::from_rotation_z(-10.40 * time.delta_secs()));
+	}
 }

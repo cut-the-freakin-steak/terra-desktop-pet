@@ -1,0 +1,33 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+	{
+		"adapter": "CodeLLDB",
+		"label": "dx run --features \"bevy_debug\"",
+		"request": "launch",
+		"program": "/home/steak/dev/terra/desktop-pet/target/dx/jAkEtop/debug/linux/app/jAkEtop",
+		"build": {
+			"label": "dx run --features \"bevy_debug\"",
+			"command": "dx",
+			"args": ["build", "--features", "bevy_debug"],
+			"env": {
+				"RUSTC_TOOLCHAIN": "/home/steak/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu",
+			},
+			"cwd": "/home/steak/dev/terra/desktop-pet",
+			"use_new_terminal": false,
+			"allow_concurrent_runs": false,
+			"reveal": "always",
+			"reveal_target": "dock",
+			"hide": "never",
+			"tags": [],
+			"shell": "system",
+			"show_summary": false,
+			"show_command": false,
+			"save": "none",
+			"hooks": [],
+		},
+		"sourceLanguages": ["rust"],
+	},
+]
