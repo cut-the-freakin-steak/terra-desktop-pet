@@ -42,8 +42,17 @@ fn main() -> AppExit {
 	return App::new()
 		.insert_resource(ClearColor(Color::NONE))
 		.init_non_send::<WinitWindows>()
-		.init_resource::<JakeEvents>()
+		.init_resource::<JakePhysicalEvents>()
+		.init_resource::<JakeSoundEvents>()
 		.insert_resource(LastScreenBounce(Direction::default()))
+		.insert_resource(PhysicalEventTimer(Timer::from_seconds(
+			2.0,
+			TimerMode::Repeating,
+		)))
+		.insert_resource(SoundEventTimer(Timer::from_seconds(
+			10.0,
+			TimerMode::Repeating,
+		)))
 		.add_plugins((
 			EmbeddedAssetPlugin::default(),
 			DefaultPlugins
@@ -66,6 +75,7 @@ fn main() -> AppExit {
 				jake_intro.run_if(in_state(JakeState::Intro)),
 				jake_squash_n_stretch.run_if(in_state(JakeState::SquashAndStretch)),
 				jake_events.run_if(in_state(JakeState::Roaming)),
+				jake_move.run_if(in_state(JakeState::Roaming)),
 			)
 				.run_if(in_state(AppState::Elsewhere)),
 		)

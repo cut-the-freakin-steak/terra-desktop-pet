@@ -2,7 +2,7 @@
 name = "jAkEtop"
 version = "0.1.0"
 edition = "2024"
-description = "silly little desktop jake"
+description = "silly little desktop jAkE"
 readme = "README.md"
 repository = "https://codeberg.org/cut-the-freakin-steak/terra-desktop-pet"
 license = "MIT"

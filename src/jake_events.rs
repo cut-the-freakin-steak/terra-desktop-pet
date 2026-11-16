@@ -96,41 +96,47 @@ pub fn jake_squash_n_stretch(
 }
 
 /// shows which border of the screen jAkE last bounced on
-#[derive(Resource, Clone, Copy)]
+#[derive(Resource, Clone, Copy, PartialEq, Eq)]
 pub struct LastScreenBounce(pub Direction);
 
-#[derive(Resource, Clone, Copy, Default)]
-pub enum JakeEvents {
-	None,
+#[derive(Resource, Clone, Copy, Default, PartialEq, Eq)]
+pub enum JakePhysicalEvents {
 	#[default]
-	Move,
-	Vibrate,
+	None,
+	Move {
+		tweak: bool,
+	},
 }
 
-pub fn jake_events(
-	mut jake: Single<(
-		&mut Jake,
-		&mut FixedTransform,
-		&GlobalTransform,
-		&mut Direction,
-		&Children,
-	)>,
-	sprites_and_transforms: Query<
-		(&mut Sprite, &mut FixedTransform, Option<&JakeNose>),
-		Without<Jake>,
-	>,
-	monitor: Res<UsingMonitor>,
-	time: Res<Time<Fixed>>,
-	mut event_timer: Local<Option<Timer>>,
-	mut jake_events: ResMut<JakeEvents>,
-	mut last_bounce: ResMut<LastScreenBounce>,
-	mut jake_speed: Local<f32>,
-) {
-	let event_timer =
-		event_timer.get_or_insert_with(|| Timer::from_seconds(1.0, TimerMode::Repeating));
+#[derive(Resource, Clone, PartialEq, Eq)]
+pub struct PhysicalEventTimer(pub Timer);
 
-	let (jake, f_transform, g_transform, direction, jake_children) = &mut *jake;
+#[derive(Resource, Clone, Copy, Default, PartialEq, Eq)]
+pub enum JakeSoundEvents {
+	None,
+	#[default]
+	Greetings,
+}
+
+#[derive(Resource, Clone, PartialEq, Eq)]
+pub struct SoundEventTimer(pub Timer);
+
+pub fn jake_events(
+	mut commands: Commands,
+	asset_server: Res<AssetServer>,
+	time: Res<Time<Fixed>>,
+	monitor: Res<UsingMonitor>,
+	mut last_bounce: ResMut<LastScreenBounce>,
+	mut jake: Single<(&mut Jake, &GlobalTransform, &mut Direction)>,
+	mut jake_physical_events: ResMut<JakePhysicalEvents>,
+	mut physical_event_timer: ResMut<PhysicalEventTimer>,
+	mut jake_sound_events: ResMut<JakeSoundEvents>,
+	mut sound_event_timer: ResMut<SoundEventTimer>,
+) {
+	let (jake, g_transform, direction) = &mut *jake;
 	let g_position = g_transform.translation();
+	let physical_event_timer = &mut physical_event_timer.0;
+	let sound_event_timer = &mut sound_event_timer.0;
 
 	// bounds checks
 	let monitor = &monitor.0;
@@ -164,129 +170,177 @@ pub fn jake_events(
 		last_bounce.0.1 = DirY::None;
 	}
 
-	// makes event stuff run every second
-	let mut do_event = true;
-	if !event_timer.tick(time.delta()).just_finished() {
-		do_event = false;
+	// makes physical event stuff run every second
+	let mut do_physical_event = true;
+	if !physical_event_timer.tick(time.delta()).just_finished() {
+		do_physical_event = false;
 	}
 
-	// random events that jAkE can partake in
-	if do_event {
+	// random physical (things on screen) events that jAkE can partake in
+	if do_physical_event {
 		match rand::random_range(0.0..1.0) {
-			0.0..0.33 => {
-				*jake_speed = rand::random_range(1100.0..3100.0) as f32;
-				*jake_events = JakeEvents::Move;
+			0.0..0.05 => *jake_physical_events = JakePhysicalEvents::Move { tweak: true },
+			0.05..0.66 => {
+				*jake_physical_events = JakePhysicalEvents::Move { tweak: false };
 			}
-			0.33..0.66 => *jake_events = JakeEvents::Vibrate,
-			_ => *jake_events = JakeEvents::None,
+			_ => *jake_physical_events = JakePhysicalEvents::None,
+		};
+	}
+
+	// makes sound event stuff run every second
+	let mut do_sound_event = true;
+	if !sound_event_timer.tick(time.delta()).just_finished() {
+		do_sound_event = false;
+	}
+
+	// random sound (thing that hear in ear) events that jAkE can partake in
+	if do_sound_event {
+		match rand::random_range(0.0..1.0) {
+			0.0..0.50 => *jake_sound_events = JakeSoundEvents::Greetings,
+			_ => *jake_sound_events = JakeSoundEvents::None,
+		};
+	}
+
+	match *jake_sound_events {
+		JakeSoundEvents::None => {}
+		JakeSoundEvents::Greetings => {
+			commands.spawn((
+				AudioPlayer::new(asset_server.load("embedded://audio/jAkE_name.ogg")),
+				PlaybackSettings::DESPAWN,
+			));
+
+			*jake_sound_events = JakeSoundEvents::None;
 		}
 	}
-
-	match *jake_events {
-		JakeEvents::None => {}
-		JakeEvents::Move => jake_move(
-			jake_children,
-			sprites_and_transforms,
-			f_transform,
-			direction,
-			&time,
-			&last_bounce,
-			event_timer,
-			1100.0..3100.0,
-		),
-		// just a liiitle movement is fine :3
-		JakeEvents::Vibrate => jake_move(
-			jake_children,
-			sprites_and_transforms,
-			f_transform,
-			direction,
-			&time,
-			&last_bounce,
-			event_timer,
-			100.0..300.0,
-		),
-	};
 }
 
-fn jake_move(
-	jake_children: &Children,
+pub fn jake_move(
+	jake_physical_events: Res<JakePhysicalEvents>,
+	jake_children_query: Query<&Children>,
 	mut sprites_and_transforms: Query<
 		(&mut Sprite, &mut FixedTransform, Option<&JakeNose>),
 		Without<Jake>,
 	>,
-	f_transform: &mut FixedTransform,
-	direction: &mut Direction,
-	time: &Res<Time<Fixed>>,
-	last_bounce: &ResMut<LastScreenBounce>,
-	event_timer: &Timer,
-	speed_range: Range<f32>,
+	mut f_transform: Single<&mut FixedTransform, With<Jake>>,
+	time: Res<Time<Fixed>>,
+	last_bounce: ResMut<LastScreenBounce>,
+	mut physical_event_timer: ResMut<PhysicalEventTimer>,
+	mut jake_speed_xy: Local<(f32, f32)>,
+	mut jake_desired_dir: Local<Direction>,
 ) {
-	// if event_timer.just_finished() {}
-	let mut desired_dir_x = if rand::random_bool(0.5) {
-		DirX::Left
-	}
-	else {
-		DirX::Right
-	};
-
-	let mut desired_dir_y = if rand::random_bool(0.5) {
-		DirY::Up
-	}
-	else {
-		DirY::Down
-	};
-
-	if last_bounce.0.0 == desired_dir_x {
-		if rand::random_bool(0.25) {
-			desired_dir_x = desired_dir_x.opposite();
-		}
-		else {
-			desired_dir_x = DirX::None;
-		}
-	}
-
-	if last_bounce.0.1 == desired_dir_y {
-		if rand::random_bool(0.25) {
-			desired_dir_y = desired_dir_y.opposite();
-		}
-		else {
-			desired_dir_y = DirY::None;
-		}
-	}
-
-	if desired_dir_x == DirX::Left {
-		for child in jake_children.iter() {
-			let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
+	let physical_event_timer = &mut physical_event_timer.0;
+	let tweakbob: bool;
+	let speed_range: Range<f32>;
+	match *jake_physical_events {
+		JakePhysicalEvents::Move { tweak } => {
+			tweakbob = tweak;
+			if tweak {
+				speed_range = 200.0..400.0;
+			}
 			else {
-				continue;
-			};
+				speed_range = 50.0..222.0;
+			}
+		}
+		_ => return,
+	};
 
-			transform.scale_mut().x = -1.0;
-			if nose.is_some() {
-				*transform.translation_mut() = Vec3::new(21.0, 4.0, 0.0);
+	// let speed_range = speed_range.get_or_insert_with(|| 50.0..222.0);
+	// let tweak = tweak.get_or_insert_with(|| false);
+
+	if physical_event_timer.just_finished() && !tweakbob {
+		*jake_speed_xy = (
+			rand::random_range(speed_range.clone()),
+			rand::random_range(speed_range.clone()),
+		);
+
+		let desired_dir_x = if rand::random_bool(0.5) {
+			DirX::Left
+		}
+		else {
+			DirX::Right
+		};
+
+		let desired_dir_y = if rand::random_bool(0.5) {
+			DirY::Up
+		}
+		else {
+			DirY::Down
+		};
+
+		*jake_desired_dir = Direction::new(desired_dir_x, desired_dir_y);
+	}
+	// just do what we did above without the timer's approval
+	else if tweakbob {
+		*jake_speed_xy = (
+			rand::random_range(speed_range.clone()),
+			rand::random_range(speed_range.clone()),
+		);
+
+		let desired_dir_x = if rand::random_bool(0.5) {
+			DirX::Left
+		}
+		else {
+			DirX::Right
+		};
+
+		let desired_dir_y = if rand::random_bool(0.5) {
+			DirY::Up
+		}
+		else {
+			DirY::Down
+		};
+
+		*jake_desired_dir = Direction::new(desired_dir_x, desired_dir_y);
+	}
+
+	if last_bounce.0.0 == jake_desired_dir.0 {
+		jake_desired_dir.0 = jake_desired_dir.0.opposite();
+	}
+
+	if last_bounce.0.1 == jake_desired_dir.1 {
+		jake_desired_dir.1 = jake_desired_dir.1.opposite();
+	}
+
+	// flipping logic, cause just doing flip_x on the sprites dont work
+	if jake_desired_dir.0 == DirX::Left {
+		for jake_children in jake_children_query {
+			for child in jake_children.iter() {
+				let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
+				else {
+					continue;
+				};
+
+				transform.scale_mut().x = -1.0;
+				if nose.is_some() {
+					// god damn it i hate that the nose' center in the sprite is actually the center
+					// and not the base of the nose ughh
+					*transform.translation_mut() = Vec3::new(21.0, 4.0, 0.0);
+				}
 			}
 		}
 	}
 	else {
-		for child in jake_children.iter() {
-			let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
-			else {
-				continue;
-			};
+		for jake_children in jake_children_query {
+			for child in jake_children.iter() {
+				let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
+				else {
+					continue;
+				};
 
-			transform.scale_mut().x = 1.0;
-			if nose.is_some() {
-				*transform.translation_mut() = Vec3::new(-25.0, 4.0, 0.0);
+				transform.scale_mut().x = 1.0;
+				if nose.is_some() {
+					// put it back
+					*transform.translation_mut() = Vec3::new(-25.0, 4.0, 0.0);
+				}
 			}
 		}
 	}
 
-	let dir = Direction::new(desired_dir_x, desired_dir_y);
-	let speed_x = rand::random_range(speed_range.clone());
-	let speed_y = rand::random_range(speed_range);
+	// move that boy
+	let dir = Direction::new(jake_desired_dir.0, jake_desired_dir.1);
 	let difference = Vec3::new(
-		dir.0 as i8 as f32 * speed_x,
-		dir.1 as i8 as f32 * speed_y,
+		dir.0 as i8 as f32 * jake_speed_xy.0,
+		dir.1 as i8 as f32 * jake_speed_xy.1,
 		0.0,
 	);
 	*f_transform.translation_mut() += difference * time.delta_secs();
