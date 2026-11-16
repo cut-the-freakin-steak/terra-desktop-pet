@@ -1,6 +1,9 @@
-# jakE desktop pet!
+# jAkE desktop pet!
 
 (jAkEtop if you will)
+
+jAkEtop is a desktop pet that does whatever he wants, whenever he wants, at random. you cannot control him. stop trying. it's no use. stop. stop it. stop.
+stop.
 
 this should work on most major operating systems (windows, mac, linux with kde; GNOME; any non-tiling wm that uses wayland or x11), but there are some exceptions and complications on certain OS' and window managers on linux. look below for troubleshooting help. :3
 
