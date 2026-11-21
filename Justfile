@@ -1,14 +1,14 @@
-hot:
-    dx serve --features "bevy_debug"
+# hot:
+#     dx serve --features "bevy_debug"
 
 run:
-    dx run --features "bevy_debug"
+    cargo run --features "bevy_debug"
 
 build:
-    dx build --features "bevy_debug"
+    cargo build --features "bevy_debug"
 
-cargo-run:
-    cargo run --features "bevy_debug"
+# cargo-run:
+#     cargo run --features "bevy_debug"
 
 cargo-build:
     cargo build --features "bevy_debug"

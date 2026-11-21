@@ -15,8 +15,11 @@ version = "0.1.0"
 formats = ["app"]
 icons = ["assets/jAkE_app_icon.png"]
 
+[features]
+bevy_debug = ["bevy/debug", "bevy/dynamic_linking", "bevy/hotpatching"]
+
 [dependencies]
-bevy = "0.20.1"
+bevy = { version = "0.20.1", default-features = false, features = ["2d", "audio"] }
 bevy_embedded_assets = "0.17.0"
 
 rand = "*"
@@ -29,9 +32,6 @@ log = { version = "0.4.34", features = ["max_level_debug", "release_max_level_wa
 
 [build-dependencies]
 winresource = "0.1.34"
-
-[features]
-bevy_debug = ["bevy/debug", "bevy/dynamic_linking", "bevy/hotpatching"]
 
 [lints.clippy]
 needless_return = "allow"
