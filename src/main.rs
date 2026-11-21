@@ -17,7 +17,7 @@ use tray_icon::*;
 
 use crate::trans_window::WindowRecreated;
 
-const JAKE_WIDTH_ISH: f32 = 65.0;
+const BASE_JAKE_WIDTH_ISH: f32 = 65.0;
 
 #[derive(Default, States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -36,8 +36,6 @@ pub enum JakeState {
 }
 
 fn main() -> AppExit {
-	info!("bro???");
-
 	let transparent_window_plugin =
 		TransparentWindow::new("jaketop".to_string(), Some("jaketop".to_string()));
 
@@ -60,6 +58,7 @@ fn main() -> AppExit {
 			15.0,
 			TimerMode::Repeating,
 		)))
+		.insert_resource(JakeWidth(BASE_JAKE_WIDTH_ISH))
 		.add_plugins((
 			EmbeddedAssetPlugin::default(),
 			DefaultPlugins
@@ -108,6 +107,9 @@ pub struct Jake {
 	pub scale: f32,
 }
 
+#[derive(Resource, Clone, Copy, PartialEq)]
+pub struct JakeWidth(pub f32);
+
 #[derive(Component)]
 pub struct JakeEyes;
 
@@ -124,6 +126,7 @@ fn setup_game(
 	monitors: Query<&Monitor>,
 	mut next_app_state: ResMut<NextState<AppState>>,
 	mut next_jake_state: ResMut<NextState<JakeState>>,
+	jake_width_ish: Res<JakeWidth>,
 ) {
 	let Ok((mut window, on_monitor)) = on_monitor_windows.single_mut()
 	else {
@@ -138,6 +141,7 @@ fn setup_game(
 	window.present_mode = bevy::window::PresentMode::AutoVsync;
 
 	let half_monitor_width = (monitor.physical_width as f64 / monitor.scale_factor) / 2.0;
+	let jake_width_ish = jake_width_ish.0;
 
 	let jake_eyes_sprite =
 		Sprite::from_image(asset_server.load("embedded://sprites/jAkE_eyes.png"));
@@ -153,7 +157,7 @@ fn setup_game(
 	};
 
 	// cookin up sum bs
-	let jake_starting_pos_x = -half_monitor_width as f32 - JAKE_WIDTH_ISH - 25.0;
+	let jake_starting_pos_x = -half_monitor_width as f32 - jake_width_ish - 25.0;
 	let magic_number = if rand::random_bool(0.90) {
 		-12.40 // genuinely no rationale behind this number. pure trial and error.
 	}

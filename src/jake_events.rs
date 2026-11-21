@@ -2,8 +2,8 @@ use std::ops::Range;
 
 use bevy::prelude::*;
 
-use crate::{DirX, DirY, Direction, FixedTransform, JakeEyes, UsingMonitor};
-use crate::{JAKE_WIDTH_ISH, Jake, JakeNose, JakeState};
+use crate::{DirX, DirY, Direction, FixedTransform, JakeEyes, JakeWidth, UsingMonitor};
+use crate::{Jake, JakeNose, JakeState};
 
 #[derive(Component, Clone, Copy)]
 pub struct JakeIntroArc {
@@ -138,6 +138,7 @@ pub fn jake_events(
 	monitor: Res<UsingMonitor>,
 	mut last_bounce: ResMut<LastScreenBounce>,
 	mut jake: Single<(&mut Jake, &GlobalTransform, &mut Direction)>,
+	jake_width_ish: Res<JakeWidth>,
 	mut jake_physical_events: ResMut<JakePhysicalEvents>,
 	mut physical_event_timer: ResMut<PhysicalEventTimer>,
 	mut jake_sound_events: ResMut<JakeSoundEvents>,
@@ -146,6 +147,7 @@ pub fn jake_events(
 	mut alt_event_timer: ResMut<AltEventTimer>,
 ) {
 	let (jake, g_transform, direction) = &mut *jake;
+	let jake_width_ish = jake_width_ish.0;
 	let g_position = g_transform.translation();
 	let physical_event_timer = &mut physical_event_timer.0;
 	let sound_event_timer = &mut sound_event_timer.0;
@@ -157,12 +159,12 @@ pub fn jake_events(
 	let half_monitor_height = (monitor.physical_height as f64 / monitor.scale_factor) / 2.0;
 
 	// right side of monitor
-	if half_monitor_width <= (g_position.x + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
+	if half_monitor_width <= (g_position.x + (jake_width_ish * jake.scale) / 2.0) as f64 {
 		direction.0 = DirX::Left;
 		last_bounce.0.0 = DirX::Right;
 	}
 	// left side of monitor
-	else if -half_monitor_width >= (g_position.x - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
+	else if -half_monitor_width >= (g_position.x - (jake_width_ish * jake.scale) / 2.0) as f64 {
 		direction.0 = DirX::Right;
 		last_bounce.0.0 = DirX::Left;
 	}
@@ -170,12 +172,12 @@ pub fn jake_events(
 		last_bounce.0.0 = DirX::None;
 	}
 	// top of monitor
-	if half_monitor_height <= (g_position.y + (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
+	if half_monitor_height <= (g_position.y + (jake_width_ish * jake.scale) / 2.0) as f64 {
 		direction.1 = DirY::Down;
 		last_bounce.0.1 = DirY::Up;
 	}
 	// bottom of monitor
-	else if -half_monitor_height >= (g_position.y - (JAKE_WIDTH_ISH * jake.scale) / 2.0) as f64 {
+	else if -half_monitor_height >= (g_position.y - (jake_width_ish * jake.scale) / 2.0) as f64 {
 		direction.1 = DirY::Up;
 		last_bounce.0.1 = DirY::Down;
 	}

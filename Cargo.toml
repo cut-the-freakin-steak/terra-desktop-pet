@@ -16,7 +16,7 @@ formats = ["app"]
 icons = ["assets/jAkE_app_icon.png"]
 
 [features]
-bevy_debug = ["bevy/debug", "bevy/dynamic_linking", "bevy/hotpatching"]
+bevy_debug = ["bevy/debug", "bevy/dynamic_linking"]  # add "bevy/hotpatching" back if dx works again
 
 [dependencies]
 bevy = { version = "0.20.1", default-features = false, features = ["2d", "audio"] }
