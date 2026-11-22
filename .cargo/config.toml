@@ -28,7 +28,11 @@ rustdocflags = ["-Zunstable-options", "--jobs-frontend=8"]
 # mold isnt available on windows, so use lld
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"
-rustflags = ["-Zshare-generics=n", "--jobs-linker=8"]
+rustflags = [
+  "-Zshare-generics=n",
+  "-Zunstable-options",
+  "--jobs-linker=8",
+]
 
 # for using mold as the linker on linux:
 [target.x86_64-unknown-linux-gnu]
