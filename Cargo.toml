@@ -22,6 +22,7 @@ bevy_debug = ["bevy/debug", "bevy/dynamic_linking"]  # add "bevy/hotpatching" ba
 bevy = { version = "0.20.1", default-features = false, features = ["2d", "audio"] }
 bevy_embedded_assets = "0.17.0"
 
+dirs = "7.0.0"
 rand = "*"
 tray-icon = { version = "0.26.1", features = ["ksni"] }
 

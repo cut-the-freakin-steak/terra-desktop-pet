@@ -3877,6 +3877,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_embedded_assets",
+ "dirs",
  "image",
  "log",
  "rand 0.10.3",

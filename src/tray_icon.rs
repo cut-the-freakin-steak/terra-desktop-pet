@@ -1,21 +1,17 @@
-use bevy::prelude::*;
+use std::io::Write;
+
+use bevy::{audio::Volume, prelude::*};
 use tray_icon::{
 	Icon, TrayIcon, TrayIconBuilder,
 	menu::{Menu, MenuEvent, MenuId, MenuItem, Submenu},
 };
 
-use crate::{BASE_JAKE_WIDTH_ISH, Jake, JakeWidth, movable_helpers::FixedTransform};
+use crate::{APP_DIR, JAKE_BASE_WIDTH_ISH, Jake, JakeWidth, movable_helpers::FixedTransform};
 
 pub struct TrayState {
 	_icon: TrayIcon,
-	scale_025_id: MenuId,
-	scale_050_id: MenuId,
-	scale_075_id: MenuId,
-	scale_100_id: MenuId,
-	scale_125_id: MenuId,
-	scale_150_id: MenuId,
-	scale_175_id: MenuId,
-	scale_200_id: MenuId,
+	scale_array: [MenuId; 8],
+	volume_array: [MenuId; 11],
 	exit_id: MenuId,
 }
 
@@ -30,7 +26,7 @@ pub fn setup_tray(world: &mut World) {
 	let icon =
 		Icon::from_rgba(image.into_raw(), width, height).expect("failed to create tray icon");
 
-	let submenu = Submenu::with_id("scales", "scale jAkE", true);
+	let scaling_submenu = Submenu::with_id("scales", "scale jAkE", true);
 	let scale_025_item = MenuItem::with_id("0.25x", "scale jAkE 0.25x", true, None);
 	let scale_050_item = MenuItem::with_id("0.50x", "scale jAkE 0.50x", true, None);
 	let scale_075_item = MenuItem::with_id("0.75x", "scale jAkE 0.75x", true, None);
@@ -39,9 +35,8 @@ pub fn setup_tray(world: &mut World) {
 	let scale_150_item = MenuItem::with_id("1.50x", "scale jAkE 1.50x", true, None);
 	let scale_175_item = MenuItem::with_id("1.75x", "scale jAkE 1.75x", true, None);
 	let scale_200_item = MenuItem::with_id("2.00x", "scale jAkE 2.00x", true, None);
-	let exit_item = MenuItem::with_id("exit", "exit jAkEtop", true, None);
 
-	let _ = submenu.append_items(&[
+	let _ = scaling_submenu.append_items(&[
 		&scale_025_item,
 		&scale_050_item,
 		&scale_075_item,
@@ -52,9 +47,37 @@ pub fn setup_tray(world: &mut World) {
 		&scale_200_item,
 	]);
 
-	// maybe later
+	let volume_submenu = Submenu::with_id("volumes", "change volume", true);
+	let volume_mute_item = MenuItem::with_id("mute", "mute", true, None);
+	let volume_001_item = MenuItem::with_id("1%", "1% volume lmao", true, None);
+	let volume_025_item = MenuItem::with_id("25%", "25% volume", true, None);
+	let volume_050_item = MenuItem::with_id("50%", "50% volume", true, None);
+	let volume_075_item = MenuItem::with_id("75%", "75% volume", true, None);
+	let volume_100_item = MenuItem::with_id("100%", "100% volume", true, None);
+	let volume_125_item = MenuItem::with_id("125%", "125% volume", true, None);
+	let volume_150_item = MenuItem::with_id("150%", "150% volume", true, None);
+	let volume_175_item = MenuItem::with_id("175%", "175% volume", true, None);
+	let volume_200_item = MenuItem::with_id("200%", "200% volume", true, None);
+	let volume_300_item = MenuItem::with_id("300%", "300% volume :p", true, None);
 
-	let menu = Menu::with_items(&[&submenu, &exit_item]).expect("failed to create tray menu");
+	let _ = volume_submenu.append_items(&[
+		&volume_mute_item,
+		&volume_001_item,
+		&volume_025_item,
+		&volume_050_item,
+		&volume_075_item,
+		&volume_100_item,
+		&volume_125_item,
+		&volume_150_item,
+		&volume_175_item,
+		&volume_200_item,
+		&volume_300_item,
+	]);
+
+	let exit_item = MenuItem::with_id("exit", "exit jAkEtop", true, None);
+
+	let menu = Menu::with_items(&[&scaling_submenu, &volume_submenu, &exit_item])
+		.expect("failed to create tray menu");
 
 	let tray = TrayIconBuilder::new()
 		.with_icon(icon)
@@ -67,14 +90,29 @@ pub fn setup_tray(world: &mut World) {
 
 	world.insert_non_send(TrayState {
 		_icon: tray,
-		scale_025_id: scale_025_item.id().to_owned(),
-		scale_050_id: scale_050_item.id().to_owned(),
-		scale_075_id: scale_075_item.id().to_owned(),
-		scale_100_id: scale_100_item.id().to_owned(),
-		scale_125_id: scale_125_item.id().to_owned(),
-		scale_150_id: scale_150_item.id().to_owned(),
-		scale_175_id: scale_175_item.id().to_owned(),
-		scale_200_id: scale_200_item.id().to_owned(),
+		scale_array: [
+			scale_025_item.id().to_owned(),
+			scale_050_item.id().to_owned(),
+			scale_075_item.id().to_owned(),
+			scale_100_item.id().to_owned(),
+			scale_125_item.id().to_owned(),
+			scale_150_item.id().to_owned(),
+			scale_175_item.id().to_owned(),
+			scale_200_item.id().to_owned(),
+		],
+		volume_array: [
+			volume_mute_item.id().to_owned(),
+			volume_001_item.id().to_owned(),
+			volume_025_item.id().to_owned(),
+			volume_050_item.id().to_owned(),
+			volume_075_item.id().to_owned(),
+			volume_100_item.id().to_owned(),
+			volume_125_item.id().to_owned(),
+			volume_150_item.id().to_owned(),
+			volume_175_item.id().to_owned(),
+			volume_200_item.id().to_owned(),
+			volume_300_item.id().to_owned(),
+		],
 		exit_id: exit_item.id().to_owned(),
 	});
 }
@@ -82,6 +120,7 @@ pub fn setup_tray(world: &mut World) {
 pub fn handle_tray_events(
 	tray: NonSend<TrayState>,
 	mut app_exit: MessageWriter<AppExit>,
+	mut global_volume: ResMut<GlobalVolume>,
 	mut jake: Single<&mut FixedTransform, With<Jake>>,
 	mut jake_width_ish: ResMut<JakeWidth>,
 ) {
@@ -89,80 +128,160 @@ pub fn handle_tray_events(
 	let jake_width_ish = &mut jake_width_ish.0;
 
 	while let Ok(event) = MenuEvent::receiver().try_recv() {
+		// APP EXIT
 		if event.id == tray.exit_id {
+			let mut data_file = std::fs::OpenOptions::new()
+				.read(false)
+				.write(true)
+				.append(false)
+				.create(true)
+				.open(APP_DIR.join("jAkE_data_stuff.jake"))
+				.expect(&format!(
+					"could not open file: {:?}",
+					APP_DIR.join("jAkE_data_stuff.jake")
+				));
+
+			let jake_scale = jake_f_transform.scale().x;
+			let app_volume = global_volume.volume.to_linear();
+			let _ = data_file.write_all(
+				format!(
+					concat!(
+						"DO NOT MANUALLY EDIT THIS FILE UNLESS YOU KNOW WHAT YOU'RE DOING, OR I WILL KILL YOU.\n",
+						"jake_scale = {}\n",
+						"app_volume = {}"
+					),
+					jake_scale, app_volume
+				)
+				.as_bytes(),
+			);
+
 			app_exit.write(AppExit::Success);
 		}
-		else if event.id == tray.scale_025_id {
+		// SCALING
+		// scale 0.25x
+		else if event.id == tray.scale_array.get(0).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 0.5,
 				y: 0.5,
 				z: prev_z,
 			};
-			*jake_width_ish = BASE_JAKE_WIDTH_ISH * 0.25;
+			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 0.25;
 		}
-		else if event.id == tray.scale_050_id {
+		// scale 0.50x
+		else if event.id == tray.scale_array.get(1).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 1.0,
 				y: 1.0,
 				z: prev_z,
 			};
-			*jake_width_ish = BASE_JAKE_WIDTH_ISH * 0.5;
+			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 0.5;
 		}
-		else if event.id == tray.scale_075_id {
+		// scale 0.75x
+		else if event.id == tray.scale_array.get(2).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 1.5,
 				y: 1.5,
 				z: prev_z,
 			};
-			*jake_width_ish = BASE_JAKE_WIDTH_ISH * 0.75;
+			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 0.75;
 		}
-		else if event.id == tray.scale_100_id {
+		// scale 1.00x
+		else if event.id == tray.scale_array.get(3).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 2.0,
 				y: 2.0,
 				z: prev_z,
 			};
-			*jake_width_ish = BASE_JAKE_WIDTH_ISH * 1.0;
+			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 1.0;
 		}
-		else if event.id == tray.scale_125_id {
+		// scale 1.25x
+		else if event.id == tray.scale_array.get(4).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 2.5,
 				y: 2.5,
 				z: prev_z,
 			};
-			*jake_width_ish = BASE_JAKE_WIDTH_ISH * 1.25;
+			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 1.25;
 		}
-		else if event.id == tray.scale_150_id {
+		// scale 1.50x
+		else if event.id == tray.scale_array.get(5).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 3.0,
 				y: 3.0,
 				z: prev_z,
 			};
-			*jake_width_ish = BASE_JAKE_WIDTH_ISH * 1.5;
+			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 1.5;
 		}
-		else if event.id == tray.scale_175_id {
+		// scale 1.75x
+		else if event.id == tray.scale_array.get(6).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 3.5,
 				y: 3.5,
 				z: prev_z,
 			};
-			*jake_width_ish = BASE_JAKE_WIDTH_ISH * 1.75;
+			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 1.75;
 		}
-		else if event.id == tray.scale_200_id {
+		// scale 2.00x
+		else if event.id == tray.scale_array.get(7).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 4.0,
 				y: 4.0,
 				z: prev_z,
 			};
-			*jake_width_ish = BASE_JAKE_WIDTH_ISH * 2.0;
+			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 2.0;
+		}
+		// VOLUME CONTROL
+		// mute
+		else if event.id == tray.volume_array.get(0).unwrap() {
+			global_volume.volume = Volume::Linear(0.00);
+		}
+		// 1% volume lol
+		else if event.id == tray.volume_array.get(1).unwrap() {
+			global_volume.volume = Volume::Linear(0.01);
+		}
+		// 25% volume
+		else if event.id == tray.volume_array.get(2).unwrap() {
+			global_volume.volume = Volume::Linear(0.25);
+		}
+		// 50% volume
+		else if event.id == tray.volume_array.get(3).unwrap() {
+			global_volume.volume = Volume::Linear(0.50);
+		}
+		// 75% volume
+		else if event.id == tray.volume_array.get(4).unwrap() {
+			global_volume.volume = Volume::Linear(0.75);
+		}
+		// 100% volume
+		else if event.id == tray.volume_array.get(5).unwrap() {
+			global_volume.volume = Volume::Linear(1.00);
+		}
+		// 125% volume
+		else if event.id == tray.volume_array.get(6).unwrap() {
+			global_volume.volume = Volume::Linear(1.25);
+		}
+		// 150% volume
+		else if event.id == tray.volume_array.get(7).unwrap() {
+			global_volume.volume = Volume::Linear(1.50);
+		}
+		// 175% volume
+		else if event.id == tray.volume_array.get(8).unwrap() {
+			global_volume.volume = Volume::Linear(1.75);
+		}
+		// 200% volume
+		else if event.id == tray.volume_array.get(9).unwrap() {
+			global_volume.volume = Volume::Linear(2.00);
+		}
+		// 300% volume :p
+		else if event.id == tray.volume_array.get(10).unwrap() {
+			global_volume.volume = Volume::Linear(3.00);
 		}
 	}
 }

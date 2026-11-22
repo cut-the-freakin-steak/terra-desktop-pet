@@ -6,6 +6,8 @@ jAkEtop is a desktop pet that does whatever he wants, whenever he wants, at rand
 
 stop.
 
+anything you _can_ do to influence jAkE, however, is located in his little tray icon. check it out!
+
 this should work on most major operating systems (windows, mac, linux with kde; GNOME; any non-tiling wm that uses wayland or x11), but there are some exceptions and complications on certain OS' and window managers on linux. look below for troubleshooting help. :3
 
 ## credits
@@ -68,7 +70,7 @@ put the following window rule into one of your config files:
 
 ```lua
 hl.window_rule({
-	match = { class = "^(jaketop)$" },
+	match = { class = "^(jAkEtop)$" },
 	float = true,
 	pin = true,
 	no_focus = true,

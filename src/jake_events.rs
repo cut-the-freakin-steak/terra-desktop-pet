@@ -2,7 +2,9 @@ use std::ops::Range;
 
 use bevy::prelude::*;
 
-use crate::{DirX, DirY, Direction, FixedTransform, JakeEyes, JakeWidth, UsingMonitor};
+use crate::{
+	DirX, DirY, Direction, FixedTransform, JAKE_BASE_SCALE, JakeEyes, JakeWidth, UsingMonitor,
+};
 use crate::{Jake, JakeNose, JakeState};
 
 #[derive(Component, Clone, Copy)]
@@ -64,16 +66,13 @@ pub fn jake_intro(
 
 pub fn jake_squash_n_stretch(
 	mut commands: Commands,
-	mut jake: Single<(
-		Entity,
-		&mut FixedTransform,
-		&mut JakeSquashNStretch,
-		&mut Jake,
-	)>,
+	mut jake: Single<(Entity, &mut FixedTransform, &mut JakeSquashNStretch), With<Jake>>,
 	time: Res<Time<Fixed>>,
 	mut next_jake_state: ResMut<NextState<JakeState>>,
+	mut jake_starting_scale: Local<Option<f32>>,
 ) {
-	let (entity, transform, effect, jake) = &mut *jake;
+	let (entity, f_transform, effect) = &mut *jake;
+	let jake_starting_scale = jake_starting_scale.get_or_insert_with(|| f_transform.scale().x);
 
 	// like this whole thing is copy-pasted from stack overflow lmaoo 2 again the sequel :3
 	effect.elapsed += time.delta_secs();
@@ -83,13 +82,14 @@ pub fn jake_squash_n_stretch(
 	let decay = (1.0 - t).powi(2); // fades out as it finishes
 	let wave = (t * std::f32::consts::TAU * 3.0).sin() * effect.intensity * decay;
 
-	transform.scale_mut().x = jake.scale * (1.0 + wave);
-	transform.scale_mut().y = jake.scale * (1.0 - wave);
+	f_transform.scale_mut().x = *jake_starting_scale * (1.0 + wave);
+	f_transform.scale_mut().y = *jake_starting_scale * (1.0 - wave);
 
 	// remove the component when the effect finishes
 	if t >= 1.0 {
 		// reset to default base scale
-		*transform.scale_mut() = Vec3::splat(jake.scale);
+		let prev_z = f_transform.scale().z;
+		*f_transform.scale_mut() = Vec3::new(*jake_starting_scale, *jake_starting_scale, prev_z);
 		commands.entity(*entity).remove::<JakeSquashNStretch>();
 		next_jake_state.set(JakeState::Roaming);
 	}
@@ -137,7 +137,7 @@ pub fn jake_events(
 	time: Res<Time<Fixed>>,
 	monitor: Res<UsingMonitor>,
 	mut last_bounce: ResMut<LastScreenBounce>,
-	mut jake: Single<(&mut Jake, &GlobalTransform, &mut Direction)>,
+	mut jake: Single<(&GlobalTransform, &mut Direction), With<Jake>>,
 	jake_width_ish: Res<JakeWidth>,
 	mut jake_physical_events: ResMut<JakePhysicalEvents>,
 	mut physical_event_timer: ResMut<PhysicalEventTimer>,
@@ -146,7 +146,7 @@ pub fn jake_events(
 	mut jake_alt_events: ResMut<JakeAltEvents>,
 	mut alt_event_timer: ResMut<AltEventTimer>,
 ) {
-	let (jake, g_transform, direction) = &mut *jake;
+	let (g_transform, direction) = &mut *jake;
 	let jake_width_ish = jake_width_ish.0;
 	let g_position = g_transform.translation();
 	let physical_event_timer = &mut physical_event_timer.0;
@@ -159,12 +159,14 @@ pub fn jake_events(
 	let half_monitor_height = (monitor.physical_height as f64 / monitor.scale_factor) / 2.0;
 
 	// right side of monitor
-	if half_monitor_width <= (g_position.x + (jake_width_ish * jake.scale) / 2.0) as f64 {
+	if half_monitor_width <= (g_position.x + (jake_width_ish * JAKE_BASE_SCALE) / 2.0) as f64 {
 		direction.0 = DirX::Left;
 		last_bounce.0.0 = DirX::Right;
 	}
 	// left side of monitor
-	else if -half_monitor_width >= (g_position.x - (jake_width_ish * jake.scale) / 2.0) as f64 {
+	else if -half_monitor_width
+		>= (g_position.x - (jake_width_ish * JAKE_BASE_SCALE) / 2.0) as f64
+	{
 		direction.0 = DirX::Right;
 		last_bounce.0.0 = DirX::Left;
 	}
@@ -172,12 +174,14 @@ pub fn jake_events(
 		last_bounce.0.0 = DirX::None;
 	}
 	// top of monitor
-	if half_monitor_height <= (g_position.y + (jake_width_ish * jake.scale) / 2.0) as f64 {
+	if half_monitor_height <= (g_position.y + (jake_width_ish * JAKE_BASE_SCALE) / 2.0) as f64 {
 		direction.1 = DirY::Down;
 		last_bounce.0.1 = DirY::Up;
 	}
 	// bottom of monitor
-	else if -half_monitor_height >= (g_position.y - (jake_width_ish * jake.scale) / 2.0) as f64 {
+	else if -half_monitor_height
+		>= (g_position.y - (jake_width_ish * JAKE_BASE_SCALE) / 2.0) as f64
+	{
 		direction.1 = DirY::Up;
 		last_bounce.0.1 = DirY::Down;
 	}
@@ -380,10 +384,9 @@ pub fn jake_eyes_spin(
 	time: Res<Time<Fixed>>,
 ) {
 	use JakeAltEvents as AltPhysEvents;
-	match *jake_alt_events {
-		AltPhysEvents::GlassesSpin => {}
-		_ => return,
-	};
+	if *jake_alt_events != AltPhysEvents::GlassesSpin {
+		return;
+	}
 
 	let spin_timer = spin_timer_opt
 		.get_or_insert_with(|| Timer::from_seconds(std::f32::consts::PI, TimerMode::Once));
