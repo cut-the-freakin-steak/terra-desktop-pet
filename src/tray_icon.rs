@@ -6,12 +6,15 @@ use tray_icon::{
 	menu::{Menu, MenuEvent, MenuId, MenuItem, Submenu},
 };
 
-use crate::{APP_DIR, JAKE_BASE_WIDTH_ISH, Jake, JakeWidth, movable_helpers::FixedTransform};
+use crate::{
+	APP_DIR, JAKE_BASE_WIDTH_ISH, Jake, JakeState, JakeWidth, movable_helpers::FixedTransform,
+};
 
 pub struct TrayState {
 	_icon: TrayIcon,
-	scale_array: [MenuId; 8],
-	volume_array: [MenuId; 11],
+	scale_ids: [MenuId; 8],
+	volume_ids: [MenuId; 11],
+	jake_mode_ids: [MenuId; 2],
 	exit_id: MenuId,
 }
 
@@ -25,6 +28,12 @@ pub fn setup_tray(world: &mut World) {
 
 	let icon =
 		Icon::from_rgba(image.into_raw(), width, height).expect("failed to create tray icon");
+
+	let jake_modes_submenu = Submenu::with_id("jAkE_modes", "jAkE modes", true);
+	let roaming_item = MenuItem::with_id("roaming", "roaming", true, None);
+	let chasing_item = MenuItem::with_id("chasing", "chasing", true, None);
+
+	let _ = jake_modes_submenu.append_items(&[&roaming_item, &chasing_item]);
 
 	let scaling_submenu = Submenu::with_id("scales", "scale jAkE", true);
 	let scale_025_item = MenuItem::with_id("0.25x", "scale jAkE 0.25x", true, None);
@@ -76,8 +85,13 @@ pub fn setup_tray(world: &mut World) {
 
 	let exit_item = MenuItem::with_id("exit", "exit jAkEtop", true, None);
 
-	let menu = Menu::with_items(&[&scaling_submenu, &volume_submenu, &exit_item])
-		.expect("failed to create tray menu");
+	let menu = Menu::with_items(&[
+		&scaling_submenu,
+		&volume_submenu,
+		&jake_modes_submenu,
+		&exit_item,
+	])
+	.expect("failed to create tray menu");
 
 	let tray = TrayIconBuilder::new()
 		.with_icon(icon)
@@ -90,7 +104,7 @@ pub fn setup_tray(world: &mut World) {
 
 	world.insert_non_send(TrayState {
 		_icon: tray,
-		scale_array: [
+		scale_ids: [
 			scale_025_item.id().to_owned(),
 			scale_050_item.id().to_owned(),
 			scale_075_item.id().to_owned(),
@@ -100,7 +114,7 @@ pub fn setup_tray(world: &mut World) {
 			scale_175_item.id().to_owned(),
 			scale_200_item.id().to_owned(),
 		],
-		volume_array: [
+		volume_ids: [
 			volume_mute_item.id().to_owned(),
 			volume_001_item.id().to_owned(),
 			volume_025_item.id().to_owned(),
@@ -113,6 +127,7 @@ pub fn setup_tray(world: &mut World) {
 			volume_200_item.id().to_owned(),
 			volume_300_item.id().to_owned(),
 		],
+		jake_mode_ids: [roaming_item.id().to_owned(), chasing_item.id().to_owned()],
 		exit_id: exit_item.id().to_owned(),
 	});
 }
@@ -123,6 +138,7 @@ pub fn handle_tray_events(
 	mut global_volume: ResMut<GlobalVolume>,
 	mut jake: Single<&mut FixedTransform, With<Jake>>,
 	mut jake_width_ish: ResMut<JakeWidth>,
+	mut next_jake_state: ResMut<NextState<JakeState>>,
 ) {
 	let jake_f_transform = &mut *jake;
 	let jake_width_ish = &mut jake_width_ish.0;
@@ -159,7 +175,7 @@ pub fn handle_tray_events(
 		}
 		// SCALING
 		// scale 0.25x
-		else if event.id == tray.scale_array.get(0).unwrap() {
+		else if event.id == tray.scale_ids.get(0).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 0.5,
@@ -169,7 +185,7 @@ pub fn handle_tray_events(
 			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 0.25;
 		}
 		// scale 0.50x
-		else if event.id == tray.scale_array.get(1).unwrap() {
+		else if event.id == tray.scale_ids.get(1).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 1.0,
@@ -179,7 +195,7 @@ pub fn handle_tray_events(
 			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 0.5;
 		}
 		// scale 0.75x
-		else if event.id == tray.scale_array.get(2).unwrap() {
+		else if event.id == tray.scale_ids.get(2).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 1.5,
@@ -189,7 +205,7 @@ pub fn handle_tray_events(
 			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 0.75;
 		}
 		// scale 1.00x
-		else if event.id == tray.scale_array.get(3).unwrap() {
+		else if event.id == tray.scale_ids.get(3).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 2.0,
@@ -199,7 +215,7 @@ pub fn handle_tray_events(
 			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 1.0;
 		}
 		// scale 1.25x
-		else if event.id == tray.scale_array.get(4).unwrap() {
+		else if event.id == tray.scale_ids.get(4).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 2.5,
@@ -209,7 +225,7 @@ pub fn handle_tray_events(
 			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 1.25;
 		}
 		// scale 1.50x
-		else if event.id == tray.scale_array.get(5).unwrap() {
+		else if event.id == tray.scale_ids.get(5).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 3.0,
@@ -219,7 +235,7 @@ pub fn handle_tray_events(
 			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 1.5;
 		}
 		// scale 1.75x
-		else if event.id == tray.scale_array.get(6).unwrap() {
+		else if event.id == tray.scale_ids.get(6).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 3.5,
@@ -229,7 +245,7 @@ pub fn handle_tray_events(
 			*jake_width_ish = JAKE_BASE_WIDTH_ISH * 1.75;
 		}
 		// scale 2.00x
-		else if event.id == tray.scale_array.get(7).unwrap() {
+		else if event.id == tray.scale_ids.get(7).unwrap() {
 			let prev_z = jake_f_transform.scale().z;
 			*jake_f_transform.scale_mut() = Vec3 {
 				x: 4.0,
@@ -240,48 +256,57 @@ pub fn handle_tray_events(
 		}
 		// VOLUME CONTROL
 		// mute
-		else if event.id == tray.volume_array.get(0).unwrap() {
+		else if event.id == tray.volume_ids.get(0).unwrap() {
 			global_volume.volume = Volume::Linear(0.00);
 		}
 		// 1% volume lol
-		else if event.id == tray.volume_array.get(1).unwrap() {
+		else if event.id == tray.volume_ids.get(1).unwrap() {
 			global_volume.volume = Volume::Linear(0.01);
 		}
 		// 25% volume
-		else if event.id == tray.volume_array.get(2).unwrap() {
+		else if event.id == tray.volume_ids.get(2).unwrap() {
 			global_volume.volume = Volume::Linear(0.25);
 		}
 		// 50% volume
-		else if event.id == tray.volume_array.get(3).unwrap() {
+		else if event.id == tray.volume_ids.get(3).unwrap() {
 			global_volume.volume = Volume::Linear(0.50);
 		}
 		// 75% volume
-		else if event.id == tray.volume_array.get(4).unwrap() {
+		else if event.id == tray.volume_ids.get(4).unwrap() {
 			global_volume.volume = Volume::Linear(0.75);
 		}
 		// 100% volume
-		else if event.id == tray.volume_array.get(5).unwrap() {
+		else if event.id == tray.volume_ids.get(5).unwrap() {
 			global_volume.volume = Volume::Linear(1.00);
 		}
 		// 125% volume
-		else if event.id == tray.volume_array.get(6).unwrap() {
+		else if event.id == tray.volume_ids.get(6).unwrap() {
 			global_volume.volume = Volume::Linear(1.25);
 		}
 		// 150% volume
-		else if event.id == tray.volume_array.get(7).unwrap() {
+		else if event.id == tray.volume_ids.get(7).unwrap() {
 			global_volume.volume = Volume::Linear(1.50);
 		}
 		// 175% volume
-		else if event.id == tray.volume_array.get(8).unwrap() {
+		else if event.id == tray.volume_ids.get(8).unwrap() {
 			global_volume.volume = Volume::Linear(1.75);
 		}
 		// 200% volume
-		else if event.id == tray.volume_array.get(9).unwrap() {
+		else if event.id == tray.volume_ids.get(9).unwrap() {
 			global_volume.volume = Volume::Linear(2.00);
 		}
 		// 300% volume :p
-		else if event.id == tray.volume_array.get(10).unwrap() {
+		else if event.id == tray.volume_ids.get(10).unwrap() {
 			global_volume.volume = Volume::Linear(3.00);
+		}
+		// JAKE MODES
+		// jake roaming mode
+		else if event.id == tray.jake_mode_ids.get(0).unwrap() {
+			next_jake_state.set(JakeState::Roaming);
+		}
+		// jake chasing mode
+		else if event.id == tray.jake_mode_ids.get(1).unwrap() {
+			next_jake_state.set(JakeState::ChasingMouse { toggled: true });
 		}
 	}
 }

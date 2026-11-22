@@ -9,7 +9,7 @@ use std::io::{BufRead, Write};
 
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
-use bevy::window::{ExitCondition, Monitor, OnMonitor, PrimaryWindow};
+use bevy::window::{ExitCondition, Monitor, OnMonitor, PrimaryMonitor, PrimaryWindow};
 use bevy::winit::WinitWindows;
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 
@@ -53,6 +53,9 @@ pub enum JakeState {
 	Intro,
 	SquashAndStretch,
 	Roaming,
+	ChasingMouse {
+		toggled: bool,
+	},
 }
 
 fn main() -> AppExit {
@@ -65,6 +68,8 @@ fn main() -> AppExit {
 		.init_resource::<JakePhysicalEvents>()
 		.init_resource::<JakeSoundEvents>()
 		.init_resource::<JakeAltEvents>()
+		.init_resource::<GlobalCursorPos>()
+		.insert_resource(JakeChaseSpeed(0.05))
 		.insert_resource(LastScreenBounce(Direction::default()))
 		.insert_resource(PhysicalEventTimer(Timer::from_seconds(
 			2.0,
@@ -106,10 +111,12 @@ fn main() -> AppExit {
 		.add_systems(
 			FixedUpdate,
 			(
+				track_global_cursor,
 				jake_intro.run_if(in_state(JakeState::Intro)),
 				jake_squash_n_stretch.run_if(in_state(JakeState::SquashAndStretch)),
 				jake_events.run_if(in_state(JakeState::Roaming)),
 				jake_move.run_if(in_state(JakeState::Roaming)),
+				jake_chase_mouse.run_if(is_chasing_mouse),
 			)
 				.run_if(in_state(AppState::Elsewhere)),
 		)
@@ -120,6 +127,10 @@ fn main() -> AppExit {
 		)
 		.add_systems(Update, handle_tray_events)
 		.run();
+}
+
+fn is_chasing_mouse(state: Res<State<JakeState>>) -> bool {
+	return matches!(state.get(), JakeState::ChasingMouse { .. });
 }
 
 #[derive(Resource)]
@@ -261,6 +272,7 @@ fn setup_jake_stuff(
 			.as_bytes(),
 		);
 	}
+
 	let data_file = std::fs::OpenOptions::new()
 		.read(true)
 		.write(false)
@@ -340,4 +352,65 @@ fn set_window_icon(
 	}
 
 	commands.insert_resource(WindowIconSet);
+}
+
+#[derive(Resource, Default, Clone, Copy, PartialEq)]
+pub struct GlobalCursorPos(pub Vec2);
+
+/// stupid goddamn click-through window with its inability to track mouse cursor position,,,
+/// much of this code i don't understand because 1. im tired and 2. its copied from various forums lmao
+fn track_global_cursor(
+	window: Single<&Window, With<PrimaryWindow>>,
+	monitors: Query<(&Monitor, Has<PrimaryMonitor>)>,
+	mut global_cursor: ResMut<GlobalCursorPos>,
+) {
+	use mouse_coords::Point;
+
+	if let Ok(Point { x, y }) = mouse_coords::get_position() {
+		let raw = Vec2::new(x as f32, y as f32);
+		let window_phys_size = window.physical_size().as_vec2();
+
+		// identify main monitor where the PrimaryWindow lives
+		let main_monitor = monitors
+			.iter()
+			.find(|(_, is_primary)| *is_primary)
+			.or_else(|| {
+				let win_aspect = window_phys_size.x / window_phys_size.y;
+				monitors.iter().find(|(m, _)| {
+					let mon_aspect = m.physical_width as f32 / m.physical_height as f32;
+					(win_aspect - mon_aspect).abs() < 0.01
+				})
+			})
+			.or_else(|| monitors.iter().next())
+			.map(|(m, _)| m);
+
+		if let Some(monitor) = main_monitor {
+			let monitor_phys_size = Vec2::new(
+				monitor.physical_width as f32,
+				monitor.physical_height as f32,
+			);
+
+			let true_logical = (monitor_phys_size * monitor_phys_size) / window_phys_size;
+			let reported_logical = monitor_phys_size / monitor.scale_factor as f32;
+			let scale_down = reported_logical / true_logical;
+
+			// subtract main monitor top-left origin in logical desktop space
+			let actual_scale = monitor_phys_size / true_logical;
+			let mon_origin_logical = monitor.physical_position.as_vec2() / actual_scale;
+			let local_raw = raw - mon_origin_logical;
+
+			// stop updating GlobalCursorPos once the cursor leaves main monitor's bounds
+			let is_inside_main_monitor = local_raw.x >= 0.0
+				&& local_raw.x <= true_logical.x
+				&& local_raw.y >= 0.0
+				&& local_raw.y <= true_logical.y;
+
+			if is_inside_main_monitor {
+				global_cursor.0 = Vec2::new(
+					(local_raw.x - (true_logical.x * 0.5)) * scale_down.x,
+					((true_logical.y * 0.5) - local_raw.y) * scale_down.y,
+				);
+			}
+		}
+	}
 }

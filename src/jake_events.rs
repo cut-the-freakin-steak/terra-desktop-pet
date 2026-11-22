@@ -1,9 +1,10 @@
-use std::ops::Range;
-
 use bevy::prelude::*;
 
+use std::ops::Range;
+
 use crate::{
-	DirX, DirY, Direction, FixedTransform, JAKE_BASE_SCALE, JakeEyes, JakeWidth, UsingMonitor,
+	DirX, DirY, Direction, FixedTransform, GlobalCursorPos, JAKE_BASE_SCALE, JakeEyes, JakeWidth,
+	UsingMonitor,
 };
 use crate::{Jake, JakeNose, JakeState};
 
@@ -145,6 +146,7 @@ pub fn jake_events(
 	mut sound_event_timer: ResMut<SoundEventTimer>,
 	mut jake_alt_events: ResMut<JakeAltEvents>,
 	mut alt_event_timer: ResMut<AltEventTimer>,
+	mut next_jake_state: ResMut<NextState<JakeState>>,
 ) {
 	let (g_transform, direction) = &mut *jake;
 	let jake_width_ish = jake_width_ish.0;
@@ -199,8 +201,12 @@ pub fn jake_events(
 	if do_physical_event {
 		match rand::random_range(0.0..1.0) {
 			0.0..0.05 => *jake_physical_events = JakePhysicalEvents::Move { tweak: true },
-			0.05..0.66 => {
+			0.05..0.50 => {
 				*jake_physical_events = JakePhysicalEvents::Move { tweak: false };
+			}
+			0.50..0.66 => {
+				*jake_physical_events = JakePhysicalEvents::None;
+				next_jake_state.set(JakeState::ChasingMouse { toggled: false });
 			}
 			_ => *jake_physical_events = JakePhysicalEvents::None,
 		};
@@ -215,7 +221,7 @@ pub fn jake_events(
 	// random sound (thing that hear in ear) events that jAkE can partake in
 	if do_sound_event {
 		match rand::random_range(0.0..1.0) {
-			0.0..0.10 => *jake_sound_events = JakeSoundEvents::Greetings,
+			0.0..0.05 => *jake_sound_events = JakeSoundEvents::Greetings,
 			_ => *jake_sound_events = JakeSoundEvents::None,
 		};
 	}
@@ -398,5 +404,114 @@ pub fn jake_eyes_spin(
 	}
 	else {
 		f_transform.rotate(Quat::from_rotation_z(-10.40 * time.delta_secs()));
+	}
+}
+
+#[derive(Resource, Clone, Copy, PartialEq)]
+pub struct JakeChaseSpeed(pub f32);
+
+pub fn jake_chase_mouse(
+	mouse_pos: Res<GlobalCursorPos>,
+	chase_speed: Res<JakeChaseSpeed>,
+	mut jake: Single<
+		(
+			&mut FixedTransform,
+			&GlobalTransform,
+			&mut Direction,
+			Entity,
+		),
+		With<Jake>,
+	>,
+	jake_state: Res<State<JakeState>>,
+	mut next_jake_state: ResMut<NextState<JakeState>>,
+	children_query: Query<&Children>,
+	mut sprites_and_transforms: Query<
+		(&mut Sprite, &mut FixedTransform, Option<&JakeNose>),
+		Without<Jake>,
+	>,
+	mut last_mouse_pos: Local<Option<Vec2>>,
+	mut jake_desired_dir: Local<Option<Direction>>,
+	mut timer: Local<Option<Timer>>,
+	time: Res<Time<Fixed>>,
+) {
+	let (f_transform, g_transform, direction, jake_entity) = &mut *jake;
+	let mouse_pos = mouse_pos.0;
+	let chase_speed = chase_speed.0;
+	let last_mouse_pos = last_mouse_pos.get_or_insert_with(|| mouse_pos);
+	let jake_desired_dir =
+		jake_desired_dir.get_or_insert_with(|| Direction::new(DirX::None, DirY::None));
+	let timer = timer.get_or_insert_with(|| {
+		Timer::from_seconds(rand::random_range(6.0..13.50124581), TimerMode::Once)
+	});
+
+	let jake_global_pos = g_transform.translation();
+
+	if mouse_pos.x > jake_global_pos.x {
+		direction.0 = DirX::Right;
+		jake_desired_dir.0 = DirX::Right;
+	}
+	else if mouse_pos.x < jake_global_pos.x {
+		direction.0 = DirX::Left;
+		jake_desired_dir.0 = DirX::Left;
+	}
+	if mouse_pos.y > jake_global_pos.y {
+		direction.1 = DirY::Up;
+		jake_desired_dir.1 = DirY::Up;
+	}
+	else if mouse_pos.y < jake_global_pos.y {
+		direction.1 = DirY::Down;
+		jake_desired_dir.1 = DirY::Down;
+	}
+
+	if jake_desired_dir.0 == DirX::Left {
+		if let Ok(jake_children) = children_query.get(*jake_entity) {
+			for child in jake_children.iter() {
+				let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
+				else {
+					continue;
+				};
+
+				transform.scale_mut().x = -1.0;
+				if nose.is_some() {
+					// god damn it i hate that the nose' center in the sprite is actually the center
+					// and not the base of the nose ughh
+					*transform.translation_mut() = Vec3::new(21.0, 4.0, 0.0);
+				}
+			}
+		}
+	}
+	else {
+		if let Ok(jake_children) = children_query.get(*jake_entity) {
+			for child in jake_children.iter() {
+				let Ok((_sprite, mut transform, nose)) = sprites_and_transforms.get_mut(child)
+				else {
+					continue;
+				};
+
+				transform.scale_mut().x = 1.0;
+				if nose.is_some() {
+					// put it back
+					*transform.translation_mut() = Vec3::new(-25.0, 4.0, 0.0);
+				}
+			}
+		}
+	}
+
+	*f_transform.translation_mut() = f_transform
+		.translation()
+		.lerp_monotonic(Vec3::new(mouse_pos.x, mouse_pos.y, 0.0), chase_speed);
+
+	*last_mouse_pos = mouse_pos;
+
+	match jake_state.get() {
+		JakeState::ChasingMouse { toggled } => {
+			if !toggled {
+				if timer.tick(time.delta()).just_finished() {
+					next_jake_state.set(JakeState::Roaming);
+					timer.reset();
+				}
+			}
+		}
+		_ => panic!("how."),
 	}
 }
