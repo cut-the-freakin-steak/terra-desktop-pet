@@ -1,5 +1,7 @@
 # jAkE desktop pet!
 
+![jake on a blue background :3](./assets/jAkE_app_icon.png)
+
 (jAkEtop if you will)
 
 jAkEtop is a desktop pet that does whatever he wants, whenever he wants, at random. you cannot control him. stop trying. it's no use. stop. stop it. stop.
