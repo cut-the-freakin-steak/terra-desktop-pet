@@ -8,6 +8,8 @@ stop.
 
 anything you _can_ do to influence jAkE, however, is located in his little tray icon. check it out!
 
+**-- this project, in its current state, i consider finished for now. i wanna work on other projects, though i may come back to this one --**
+
 this should work on most major operating systems (windows, mac, linux with kde; GNOME; any non-tiling wm that uses wayland or x11), but there are some exceptions and complications on certain OS' and window managers on linux. look below for troubleshooting help. :3
 
 ## credits
