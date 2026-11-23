@@ -1,6 +1,6 @@
 # jAkE desktop pet!
 
-![jake on a blue background :3](./assets/jAkE_app_icon.png)
+<img src="./assets/jAkE_app_icon.png" alt="jAkE on a blue background :3" width="400"/>
 
 (jAkEtop if you will)
 
