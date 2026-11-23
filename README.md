@@ -101,3 +101,7 @@ if you wanna build the project yourself, you'll have to install:
 - [cargo-packager](https://github.com/crabnebula-dev/cargo-packager), for mac builds outputting a *.app file.
 
 all of the commands you need are in the Justfile! check it out to see what you want, and then type `just {command}` in your terminal. :3
+
+## ai disclosure
+
+this project does not use ai for any piece of code or art or idea. it was sparsely used for debugging. (typically as a last resort when i was gonna lose it)
